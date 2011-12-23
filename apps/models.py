@@ -231,9 +231,9 @@ class User(Base):
         info['loud_num'] = self.loud_num
         info['star_num'] = self.star_num
         info['to_help_num'] = self.to_help_num
-        info['prizes_link'] = url_concat('%s%s',
-                (options.site_uri, self.reverse_uri(Prize.__tablename__)),
-                {'uid': self.id, 'qs': "created desc", 'st': 0, 'qn': 20})
+        info['prizes_link'] = url_concat('%s%s' % 
+               (options.site_uri, self.reverse_uri(Prize.__tablename__, "")),
+               {'uid': self.id, 'qs': "created desc", 'st': 0, 'qn': 20})
 
         return info
 
@@ -440,12 +440,12 @@ class Loud(Base):
         include=['content', 'paycate', 'loudcate', 'address', 'lat', 'lon',
                 'flat', 'flon', 'updated', 'created']
 
-        info = self.to_dict()
+        info = self.to_dict(include)
         info['id'] = self.get_urn_id()
         info['link'] = self.get_link()
         info['user'] = self.user.user2dict4link()
-        info['replies_link'] = url_concat('%s%s',
-                (options.site_uri, self.reverse_uri(Reply.__tablename__)),
+        info['replies_link'] = url_concat('%s%s' % 
+               (options.site_uri, self.reverse_uri(Reply.__tablename__, "")),
                 {'lid': self.id, 'qs': "created desc", 'st': 0, 'qn': 20})
 
         return info

@@ -23,13 +23,13 @@ from apps.reply import ReplyHandler
 from utils.coredb import sql_db
 
 # server
-define('port', default=8888, help="run on the given port", type=int)
+define('port', default=8000, help="run on the given port", type=int)
 
 #URI
 #define('site_uri', default="https://n2u.in", type=str, help="site uri") 
 #define('static_uri', default="http://s.n2u.in", type=str, help="static uri")
-define('site_uri', default="http://localhost:8888", type=str, help="site uri") 
-define('static_uri', default="http://localhost:8888/static", type=str, help="static uri")
+define('site_uri', default="http://localhost", type=str, help="site uri") 
+define('static_uri', default="http://localhost/static", type=str, help="static uri")
 define('geo_uri', default="http://l.n2u.in", type=str, help="locaiton and address parser uri")
 
 #args
@@ -40,7 +40,7 @@ define('cr', default=3000, type=float, help="the cycle radius.")
 define('db_uri', default="mysql://root:123@localhost/apple2?charset=utf8", type=str, help="connect to mysql")
 
 # avatar dir  path
-define('path', default="/data/web/static/", type=str, help="recommend default one")
+define('path', default="/Users/cloud/mywork/webdev/apple2/static/", type=str, help="recommend default one")
 
 # app key
 define("app_name", default="lebang", help="app name")
