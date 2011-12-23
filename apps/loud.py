@@ -13,7 +13,6 @@ from utils.tools import QDict
 
 
 class LoudHandler(BaseRequestHandler):
-    # wait for test TODO
 
     @authenticated
     def get(self, lid):
@@ -24,27 +23,43 @@ class LoudHandler(BaseRequestHandler):
             self.render_json(loud_dict)
         else:
             self.set_status(404)
-            self.finsh()
+            self.finish()
 
     @authenticated
+    @tornado.web.asynchronous
     def post(self, lid):
 
-        # the precondtion the max 3 louds.
-        #loud_count = Loud.query.get_louds().filter(Loud.user.has(User.phone==self.current_user.phone)).count()
-        #if loud_count >= 3:
-        #    raise HTTPError(412)
+        self.loud_data = self.get_data()
+        lat, lon = self.loud_data['lat'], self.loud_data['lon']
 
-        data = self.get_data()
-        self.wrap_mars_addr(data)
+        mars_location_uri = "%s%s" % (options.geo_uri, '/e2m/%f,%f' % (lat, lon))
+        http_client = tornado.httpclient.AsyncHTTPClient()
+        http_client.fetch(mars_location_uri, callback=self.on_e2m_fetch)
+
+    def on_e2m_fetch(self, rsp):
+        if rsp.error: raise HTTPError(500)
+
+        geo = self.dejson(rsp.body)
+        self.loud_data['flat'], self.loud_data['flon'] = geo.values()
+
+        mars_addr_uri = "%s%s" % (options.geo_uri, '/m2addr/%f,%f' % (geo['lat'], geo['lon']))
+        http_client = tornado.httpclient.AsyncHTTPClient()
+        http_client.fetch(mars_addr_uri, callback=self.on_m2addr_fetch)
+
+    def on_m2addr_fetch(self, rsp):
+        if rsp.error: raise HTTPError(500)
+
+        if rsp.body:
+            policital, self.loud_data['address'] = rsp.body.split('#')
 
         loud = Loud()
         loud.user_id = self.current_user.id
 
         if self.current_user.is_admin:
-            # admin's loud
-            data['grade'] = 0
+            # admin's loud loud category is 'sys'
+            self.loud_data['loudcate'] = 'sys'
 
-        loud.from_dict(data)
+        loud.from_dict(self.loud_data)
 
         if loud.save():
             self.set_status(201)
@@ -52,55 +67,31 @@ class LoudHandler(BaseRequestHandler):
         else:
             self.set_status(400)
 
-        self.finsh()
+        self.finish()
+
+    @authenticated
+    def put(self, lid):
+
+        loud = Loud.query.get(lid)
+        if loud and loud.admin_by(self.current_user):
+            data = self.get_data()
+            loud.from_dict(data)
+            loud.save()
+        else:
+            raise HTTPError(403)
+
+        self.set_status(200)
+        self.finish()
 
     @authenticated
     def delete(self, lid):
         loud = Loud.query.get(lid)
-        if loud.admin_by(self.current_user):
+        if loud and loud.admin_by(self.current_user):
             self.db.delete(loud)
             self.db.commit()
 
-        self.finsh()
-
-    def wrap_mars_addr(self, data):
-
-        assert 'lat' in data and 'lon' in data, "The data must have location infomation"
-        lat, lon = data['lat'], data['lon']
-
-        flat, flon = self.e2m(lat, lon)
-        if flat and flon:
-            data['flat'], data['flon'] = flat, flon
-            addr = self.m2addr(flat, flon)
-
-            if addr:
-                # addrr like 'China,Zhejiang,Hangzhou,xihuqu#yugu.rd218'
-                policital, data['address'] = addr.split('#')
-
-    def e2m(self, lat, lon):
-        mars_location_uri = "%s%s" % (options.geo_uri, '/e2m/%f,%f' % (lat, lon))
-        http = tornado.httpclient.HTTPClient()
-        try:
-            rsp = http.fetch(mars_location_uri)
-        except tornado.httpclient.HTTPError, e:
-            res = None, None
-        else:
-            geo = self.dejson(rsp.body)
-            res = geo.get('lat', None), geo.get('lon', None)
-
-        return res
-
-    def m2addr(self, lat, lon):
-        mars_addr_uri = "%s%s" % (options.geo_uri, '/m2addr/%f,%f' % (lat, lon))
-        http = tornado.httpclient.HTTPClient()
-        try:
-            rsp = http.fetch(mars_addr_uri)
-        except tornado.httpclient.HTTPError, e:
-            res = None
-        else:
-            res = rsp.body
-
-        return res
+        self.set_status(200)
+        self.finish()
 
 
 class SearchLoudHandler(BaseRequestHandler):

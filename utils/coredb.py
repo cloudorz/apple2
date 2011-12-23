@@ -8,6 +8,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import class_mapper, Query
 from sqlalchemy.orm.exc import UnmappedClassError, NoResultFound, MultipleResultsFound
+from sqlalchemy import Column
 
 from tornado.options import options
 
@@ -65,8 +66,7 @@ def obj_to_dict(self, include=[]):
 
 def obj_from_dict(self, data):
     # PS: not contain the user and not method name
-    attrs = [e for e in dir(self) if not e.startswith('_') and not callable(getattr(self, e))]
-    any(setattr(self, k, v) for k,v in data.items() if not (k == 'id') and k in attrs)
+    any(setattr(self, k, v) for k,v in data.items() if k in self._fields)
 
 def obj_save(self):
     if self.can_save():
@@ -82,7 +82,8 @@ def obj_save(self):
 def fake_get_urn_id(self):
     return "urn:%s:%s" % (self.__tablename__, self.id)
 
-def obj_get_link(self, url_name)
+def obj_get_link(self):
+    url_name = self.__tablename__
     return "%s%s" % (options.site_uri, self.reverse_uri(url_name, self.id))
         
 

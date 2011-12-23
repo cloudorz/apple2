@@ -20,6 +20,10 @@ class BaseRequestHandler(tornado.web.RequestHandler):
     def rdb(self):
         return self.application.redis
 
+    @property
+    def db(self):
+        return self.application.db_session
+
     # json pickle data methods
     def json(self, data):
         dthandler = lambda obj: obj.isoformat() if isinstance(obj, (datetime.datetime, datetime.date)) else obj
@@ -40,7 +44,7 @@ class BaseRequestHandler(tornado.web.RequestHandler):
         try:
             data = self.dejson(self.request.body);
         except (ValueError, TypeError), e:
-            raise HTTPError(415) # the data is not the right josn format
+            raise HTTPError(415) # the data is not the right json format
 
         return data
 
@@ -77,11 +81,9 @@ class BaseRequestHandler(tornado.web.RequestHandler):
 
         return None, None
 
-
     def get_current_user(self):
 
         if self.is_available_client():
-            return User.query.get_by_email()
             email, token = self.auth_user()
             if email and token:
                 user = User.query.get_by_email(email)

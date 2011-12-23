@@ -13,8 +13,8 @@ from utils.sp import sms_send, ret_code2desc
 from utils.tools import generate_password, QDict, make_md5
 from utils.escape import json_encode, json_decode
 
+
 class UserHandler(BaseRequestHandler):
-    # wait for test TODO
 
     @authenticated
     def get(self, uid):
@@ -25,8 +25,7 @@ class UserHandler(BaseRequestHandler):
                 info = user.user2dict()
                 self.render_json(info)
             else:
-                self.set_status(404)
-                self.finsh()
+                raise HTTPError(404)
 
         else:
             q = QDict(
@@ -64,13 +63,13 @@ class UserHandler(BaseRequestHandler):
                 query_dict['st'] = max(q.start - q.num, 0)
                 user_collection['prev'] = self.full_uri(query_dict)
 
-            return self.render_json(user_collection)
+            self.render_json(user_collection)
 
     @availabelclient
-    def post(self, phn):
-        user = User()
-
+    def post(self, uid):
         data = self.get_data()
+
+        user = User()
         user.from_dict(data)
         # after the phone set in
         user.generate_avatar_path()
@@ -79,9 +78,9 @@ class UserHandler(BaseRequestHandler):
             self.set_status(201)
             self.set_header('Location', user.get_link())
         else:
-            self.set_status(400)
+            raise HTTPError(400)
 
-        self.finsh()
+        self.finish()
 
     @authenticated
     def put(self, uid):
@@ -91,15 +90,16 @@ class UserHandler(BaseRequestHandler):
         if not user: raise HTTPError(404)
 
         data = self.get_data()
-        if self.current_user.is_admin and \
+        if self.current_user.is_admin or \
                 user.owner_by(self.current_user) and \
-                not ({'email, is_admin, token'} & set(data)):
+                not ({'email', 'role', 'token'} & set(data)):
             user.from_dict(data)
             user.save()
         else:
-            self.set_status(403)
+            raise HTTPError(403)
 
-        self.finsh()
+        self.set_status(200)
+        self.finish()
 
     @authenticated
     def delete(self, uid):
@@ -110,11 +110,14 @@ class UserHandler(BaseRequestHandler):
         if user.admin_by(self.current_user):
             self.db.delete(user) 
             self.db.commit()
+        else:
+            raise HTTPError(403)
 
-        self.finsh()
+        self.set_status(200)
+        self.finish()
 
 
-class AuthHandler(BaseRequestHandler):
+class LoginHandler(BaseRequestHandler):
     # TODO wait for change
 
     @availabelclient
@@ -152,8 +155,8 @@ class UploadHandler(BaseRequestHandler):
     def post(self):
         if 'photo' in self.request.files:
             if not save_images(self.request.files['photo']):
-                self.set_status(501)
+                raise HTTPError(501)
         else:
-            self.set_status(400)
+            raise HTTPError(400)
 
-        self.finsh()
+        self.finish()

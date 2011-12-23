@@ -8,6 +8,8 @@ from sqlalchemy.orm import relation, backref, column_property, synonym
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 from tornado.options import options
+from tornado.web import HTTPError
+from tornado.httputil import url_concat
 
 from utils.coredb import BaseQuery, Base
 from utils.escape import json_encode, json_decode
@@ -36,6 +38,12 @@ class UserQuery(BaseQuery):
 
 class LoudQuery(BaseQuery):
 
+    def get_or_404(self, lid):
+        loud = self.get(lid)
+        if not loud: raise HTTPError(404)
+        
+        return loud
+
     def get_by_cycle2(self, user_lat, user_lon):
         return self.get_by_cycle(user_lat, user_lon).filter(Loud.block==False)
 
@@ -54,7 +62,7 @@ class LoudQuery(BaseQuery):
         # mysql functions 
         acos, sin, cos, pi, abs = sql.func.acos, sql.func.sin, sql.func.cos, sql.func.pi, sql.func.abs
 
-        return self.filter(sql.or_(Loud.grade==0, abs(earth_r*acos(sin(user_lat)*sin(Loud.lat)*cos(user_lon-Loud.lon)+cos(user_lat)*cos(Loud.lat))*pi()/180)<distance))
+        return self.filter(sql.or_(Loud.loudcate == 'sys', abs(earth_r*acos(sin(user_lat)*sin(Loud.lat)*cos(user_lon-Loud.lon)+cos(user_lat)*cos(Loud.lat))*pi()/180)<distance))
 
     def get_by_cycle_key(self, user_lat, user_lon, key):
         return self.get_by_cycle2(user_lat, user_lon).filter(Loud.content.like('%'+key+'%'))
@@ -63,6 +71,16 @@ class LoudQuery(BaseQuery):
 # Models
 class Auth(Base):
     __tablename__ = 'auths'
+
+    _fields = (
+            'user_id', 
+            'app_id',
+            'access_token',
+            'access_secret',
+            'expired',
+            'updated',
+            'created',
+            )
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"))
@@ -100,7 +118,7 @@ class Auth(Base):
 
         info = self.to_dict(include)
         info['id'] = self.get_urn_id()
-        info['link'] = self.get_link('auth')
+        info['link'] = self.get_link()
         info['app'] = self.app.app2dict()
         info['user'] = self.user.user2dict()
 
@@ -108,11 +126,18 @@ class Auth(Base):
 class App(Base):
     __tablename__ = 'apps'
 
+    _fields = (
+            'name',
+            'key',
+            'sec',
+            'desp',
+            )
+
     id = Column(Integer, primary_key=True)
     name = Column(String(20))
     key = Column(String(20))
     sec = Column(String(32))
-    desc = Column(String(100), nullable=True)
+    desp = Column(String(100), nullable=True)
 
     def __init__(self, *args, **kwargs):
         super(App, self).__init__(*args, **kwargs)
@@ -130,16 +155,29 @@ class App(Base):
         include = ['name', 'key', 'sec', 'desc']
 
         info = self.to_dict(include)
-        info['link'] = self.get_link('app')
+        info['link'] = self.get_link()
         info['id'] = self.get_urn_id()
 
 
 class User(Base):
     __tablename__ = 'users'
 
+    _fields = (
+            'email',
+            'token',
+            'name',
+            'phone',
+            'avatar',
+            'brief',
+            'role',
+            'block',
+            'updated',
+            'created',
+            )
+
     query_class = UserQuery
 
-    NORMAL, MERCHANT, ADMIN = 100, 200, 300
+    USER, MERCHANT, ADMIN = 100, 200, 300
 
     id = Column(Integer, primary_key=True)
     email = Column(String(60), unique=True)
@@ -151,7 +189,7 @@ class User(Base):
     #to_help_num int 0
     #star_num int 0
     #loud_num int 0
-    is_admin = Column(SmallInteger, default=NORMAL)
+    role = Column(SmallInteger, default=USER)
     block = Column(Boolean, default=False)
     updated = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
     created = Column(DateTime, default=datetime.datetime.now)
@@ -175,20 +213,27 @@ class User(Base):
     def admin_by(self, u):
         return self.owner_by(u) or u.is_admin
 
+    @property
+    def is_admin(self):
+        return self.role == self.USER
+
     def authenticate(self, token):
         return self.token == token
 
-    def user2dict(self, u):
-        include=['email', 'name', 'avatar', 'phone', 'brief',
-                'block', 'is_admin', 'updated', 'created']
+    def user2dict(self):
+        include=['name', 'avatar', 'phone', 'brief',
+                'block', 'role', 'updated', 'created']
 
         info = self.to_dict(include)
         info['id'] = self.get_urn_id()
-        info['link'] = self.get_link('user')
+        info['link'] = self.get_link()
         info['avatar_link'] = self.get_avatar_link()
         info['loud_num'] = self.loud_num
         info['star_num'] = self.star_num
         info['to_help_num'] = self.to_help_num
+        info['prizes_link'] = url_concat('%s%s',
+                (options.site_uri, self.reverse_uri(Prize.__tablename__)),
+                {'uid': self.id, 'qs': "created desc", 'st': 0, 'qn': 20})
 
         return info
 
@@ -197,7 +242,15 @@ class User(Base):
         return info
 
     def user2dict4redis(self):
-        info = self.to_dict(include=['name', 'phone', 'id', 'is_admin'])
+        info = self.to_dict(include=['name', 'phone', 'id', 'role'])
+        return info
+
+    def user2dict4link(self):
+        info = {
+                'id': self.get_urn_id(),
+                'link': self.get_link(),
+                }
+
         return info
 
     def get_avatar_link(self):
@@ -208,71 +261,19 @@ class User(Base):
             self.avatar = 'i/%s.jpg' % hashlib.md5(str(self.email)).hexdigest()
 
 
-class PayCategory(Base):
-    __tablename__ = 'paycates'
-
-    id = Column(Integer, primary_key=True)
-    label = Column(String(10), unique=True)
-    name = Column(String(10))
-    help_text = Column(String(100), nullable=True)
-
-    def __init__(self, *args, **kwargs):
-        super(PayCategory, self).__init__(*args, **kwargs)
-
-    def __repr__(self):
-        return "<pay category:%s>" % self.label
-
-    def __str__(self):
-        return "<pay category:%s>" % self.label
-
-    def can_save(self):
-        return self.name and self.label
-
-    def paycate2dict(self):
-        include = ['name', 'label', 'help_text']
-
-        info = self.to_dict(include)
-        info['id'] = self.get_urn_id()
-        info['link'] = self.get_link()
-
-        return info
-
-
-class LoudCategory(Base):
-    __tablename__ = 'loudcates'
-
-    id = Column(Integer, primary_key=True)
-    label = Column(String(10), unique=True)
-    name = Column(String(10))
-    help_text = Column(String(100), nullable=True)
-
-    def __init__(self, *args, **kwargs):
-        super(LoudCategory, self).__init__(*args, **kwargs)
-
-    def __repr__(self):
-        return "<loud category:%s>" % self.label
-
-    def __str__(self):
-        return "<loud category:%s>" % self.label
-
-    def can_save(self):
-        return self.label and self.name
-
-    def loudcate2dict(self):
-        include = ['name', 'label', 'help_text']
-
-        info = self.to_dict(include)
-        info['id'] = self.get_urn_id()
-        info['link'] = self.get_link('loudcate')
-
-        return info
-
-
 class Prize(Base):
     __tablename__ = 'prizes'
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'))
+    _fields = (
+            'user_id',
+            'loud_id',
+            'content',
+            'has_star',
+            'created',
+            )
+
+    #id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
     loud_id = Column(Integer, ForeignKey('louds.id', ondelete='CASCADE'))
     content = Column(String(70), nullable=True)
     has_star = Column(Boolean, default=False)
@@ -304,15 +305,28 @@ class Prize(Base):
 
         info = self.to_dict(include)
         info['id'] = self.get_urn_id()
-        info['link'] = self.get_link('prize')
-        info['user'] = self.user2dict()
-        info['loud'] = self.loud2dict()
+        info['link'] = self.get_link()
+        info['provider'] = self.loud.user.user2dict4link()
+        #info['loud'] = self.loud.loud2dict()
 
         return info
 
 
 class Reply(Base):
     __tablename__ = 'replies'
+
+    _fields = (
+            'user_id',
+            'loud_id',
+            'content',
+            'lat',
+            'lon',
+            'flat',
+            'flon',
+            'address',
+            'is_help',
+            'created',
+            )
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'))
@@ -323,6 +337,7 @@ class Reply(Base):
     flat = Column(Float, default=0, nullable=True)
     flon = Column(Float, default=0, nullable=True)
     address = Column(String(30), nullable=True)
+    is_help = Column(Boolean)
     created = Column(DateTime, default=datetime.datetime.now)
 
     user = relation('User', backref=backref('replies', order_by=created,  cascade="all, delete, delete-orphan"))
@@ -339,7 +354,8 @@ class Reply(Base):
 
     def can_save(self):
         return self.user_id and self.loud_id and self.content \
-                and self.lat and self.lon
+                and self.lat and self.lon \
+                and (self.is_help == True or self.is_help == False)
 
     def owner_by(self, u):
         return u and u.id == self.user_id
@@ -352,9 +368,9 @@ class Reply(Base):
 
         info = self.to_dict(include)
         info['id'] = self.get_urn_id()
-        info['link'] = self.get_link('reply')
-        info['user'] = self.user.user2dict()
-        info['loud'] = self.loud.loud2dict()
+        info['link'] = self.get_link()
+        info['user'] = self.user.user2dict4link()
+        #info['loud'] = self.loud.loud2dict()
 
         return info
 
@@ -362,21 +378,35 @@ class Reply(Base):
 class Loud(Base):
     __tablename__ = 'louds'
 
+    _fields = (
+            'user_id',
+            'paycate',
+            'loudcate',
+            'content',
+            'lat',
+            'lon',
+            'flat',
+            'flon',
+            'address',
+            'status',
+            'updated',
+            'created',
+            )
+
     query_class = LoudQuery
 
-    SHOW, DONE, ERR = 100, 200, 0
+    ERR, OVERDUE, SHOW, DONE = 0, 100, 200, 300
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"))
-    paycate_id = Column(Integer, ForeignKey('paycates.id', ondelete="CASCADE"))
-    loudcate_id = Column(Integer, ForeignKey('loudcates.id', ondelete="CASCADE"))
     content = Column(String(70))
+    paycate = Column(String(10))
+    loudcate = Column(String(10))
     lat = Column(Float, default=0)
     lon = Column(Float, default=0)
     flat = Column(Float, default=0, nullable=True)
     flon = Column(Float, default=0, nullable=True)
     address = Column(String(30), nullable=True)
-    grade = Column(Integer, default=5)
     status = Column(SmallInteger, default=SHOW)
     updated = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
     created = Column(DateTime, default=datetime.datetime.now)
@@ -386,8 +416,6 @@ class Loud(Base):
     # 1) Column ForeignKey set ondelete keyword for database level 
     # 2) mapper on relation set cascade keyword in parent Model for sqlalchemy session level 
     user = relation('User', backref=backref('louds', order_by=created,  cascade="all, delete, delete-orphan"))
-    paycate = relation('PayCategory', backref=backref('louds', order_by=created,  cascade="all, delete, delete-orphan"))
-    loudcate = relation('LoudCategory', backref=backref('louds', order_by=created,  cascade="all, delete, delete-orphan"))
 
     def __init__(self, *args, **kwargs):
         super(Loud, self).__init__(*args, **kwargs)
@@ -400,7 +428,7 @@ class Loud(Base):
 
     def can_save(self):
         return self.user_id and self.content and self.lat and self.lon \
-                and self.paycate_id and self.loudcate_id
+                and self.paycate and self.loudcate
 
     def owner_by(self, u):
         return u and u.id == self.user_id
@@ -409,13 +437,16 @@ class Loud(Base):
         return self.owner_by(u) or u.is_admin
     
     def loud2dict(self):
-        include=['content', 'grade', 'address', 'lat', 'lon', 'flat',
-            'flon', 'created']
+        include=['content', 'paycate', 'loudcate', 'address', 'lat', 'lon',
+                'flat', 'flon', 'updated', 'created']
 
         info = self.to_dict()
         info['id'] = self.get_urn_id()
-        info['link'] = self.get_link('loud')
-        info['user'] = self.user.user2dict()
+        info['link'] = self.get_link()
+        info['user'] = self.user.user2dict4link()
+        info['replies_link'] = url_concat('%s%s',
+                (options.site_uri, self.reverse_uri(Reply.__tablename__)),
+                {'lid': self.id, 'qs': "created desc", 'st': 0, 'qn': 20})
 
         return info
 
@@ -426,10 +457,14 @@ User.loud_num = column_property(sql.select([sql.func.count(Loud.id)]).\
         where(Loud.user_id==User.id).as_scalar(), deferred=True)
 
 # user's star num
-User.star_num = column_property(sql.select([sql.func.count(Prize.id)]).\
+User.star_num = column_property(sql.select([sql.func.count(Prize.user_id)]).\
         where(sql.and_(Prize.user_id==User.id, Prize.has_star==True)).\
         as_scalar(), deferred=True)
 
 # user's help other num
-User.to_help_num = column_property(sql.select([sql.func.count(Prize.id)]).\
+User.to_help_num = column_property(sql.select([sql.func.count(Prize.user_id)]).\
         where(Prize.user_id==User.id).as_scalar(), deferred=True)
+
+# loud's replies number
+Loud.reply_num = column_property(sql.select([sql.func.count(Reply.id)]).\
+        where(Reply.user_id==Loud.id).as_scalar(), deferred=True)
