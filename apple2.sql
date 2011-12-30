@@ -23,12 +23,11 @@ DROP TABLE IF EXISTS `apps`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `apps` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `appkey` varchar(30) NOT NULL,
   `name` varchar(20) NOT NULL,
-  `key` varchar(20) NOT NULL,
-  `sec` varchar(20) NOT NULL,
-  `desp` varchar(20) NOT NULL,
-  PRIMARY KEY (`id`)
+  `secret` varchar(64) NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`appkey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -40,19 +39,17 @@ DROP TABLE IF EXISTS `auths`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `auths` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `site_user_id` varchar(30) NOT NULL,
   `user_id` int(11) unsigned NOT NULL,
-  `app_id` int(11) unsigned NOT NULL,
+  `site_label` varchar(20) NOT NULL,
   `access_token` varchar(64) NOT NULL,
   `access_secret` varchar(64) NOT NULL,
-  `expired` int(11) NOT NULL,
+  `expired` int(11) NOT NULL DEFAULT '-1',
   `updated` datetime NOT NULL,
   `created` datetime NOT NULL,
-  PRIMARY KEY (`id`),
+  PRIMARY KEY (`site_user_id`),
   KEY `user_id` (`user_id`),
-  KEY `app_id` (`app_id`),
-  CONSTRAINT `auths_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `auths_ibfk_2` FOREIGN KEY (`app_id`) REFERENCES `apps` (`id`) ON DELETE CASCADE
+  CONSTRAINT `auths_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -139,18 +136,18 @@ DROP TABLE IF EXISTS `users`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `users` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `email` varchar(60) NOT NULL,
-  `token` varchar(32) NOT NULL,
+  `userkey` varchar(30) NOT NULL,
+  `secret` varchar(32) NOT NULL,
   `name` varchar(20) NOT NULL,
   `phone` varchar(15) DEFAULT NULL,
   `avatar` varchar(100) DEFAULT NULL,
-  `brief` varchar(20) DEFAULT NULL,
+  `brief` varchar(70) DEFAULT NULL,
   `role` smallint(3) NOT NULL DEFAULT '100',
   `block` tinyint(1) NOT NULL DEFAULT '0',
   `updated` datetime NOT NULL,
   `created` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `email` (`email`)
+  UNIQUE KEY `userkey` (`userkey`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

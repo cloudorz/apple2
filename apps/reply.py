@@ -6,7 +6,7 @@ from tornado.options import options
 
 from apps import BaseRequestHandler
 from apps.models import User, Loud, Reply
-from utils.decorator import authenticated, availabelclient
+from utils.decorator import authenticated, validclient
 from utils.tools import generate_password, QDict, make_md5
 from utils.escape import json_encode, json_decode
 
@@ -65,7 +65,11 @@ class ReplyHandler(BaseRequestHandler):
         http_client.fetch(mars_location_uri, callback=self.on_e2m_fetch)
         
     def on_e2m_fetch(self, rsp):
-        if rsp.error: raise HTTPError(500)
+
+        if rsp.error:
+            msg = "Error response %s fetching %s" % (rsp.error, rsp.request.url)
+            logging.warning(msg)
+            raise HTTPError(500, msg)
 
         geo = self.dejson(rsp.body)
         self.reply_data['flat'], self.reply_data['flon'] = geo.values()
@@ -75,7 +79,11 @@ class ReplyHandler(BaseRequestHandler):
         http_client.fetch(mars_addr_uri, callback=self.on_m2addr_fetch)
 
     def on_m2addr_fetch(self, rsp):
-        if rsp.error: raise HTTPError(500)
+
+        if rsp.error:
+            msg = "Error response %s fetching %s" % (rsp.error, rsp.request.url)
+            logging.warning(msg)
+            raise HTTPError(500, msg)
 
         if rsp.body:
             policital, self.reply_data['address'] = rsp.body.split('#')

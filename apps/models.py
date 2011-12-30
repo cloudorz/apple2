@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import datetime, hashlib, decimal
+import datetime, decimal, uuid
 
 from sqlalchemy import sql, Column, String, Integer, Boolean, \
                         DateTime, Float, ForeignKey, Enum, SmallInteger
@@ -18,13 +18,13 @@ from utils.escape import json_encode, json_decode
 # Queries
 class UserQuery(BaseQuery):
 
-    def get_by_email(self, email):
+    def get_by_userkey(self, userkey):
         ''' Get user from users table return the User object 
         or Not exisit and Multi exisit return None
         '''
         # FIXME
         try:
-            u = self.filter_by(block=False).filter_by(email=email).one()
+            u = self.filter_by(block=False).filter_by(userkey=userkey).one()
             self.session.commit()
         except (NoResultFound, MultipleResultsFound):
             u = None
@@ -69,12 +69,52 @@ class LoudQuery(BaseQuery):
 
 
 # Models
+class App(Base):
+    __tablename__ = 'apps'
+
+    _fields = (
+            'name',
+            'appkey',
+            'secret',
+            'created',
+            )
+
+    appkey = Column(String(30), primary_key=True)
+    name = Column(String(20))
+    secret = Column(String(32))
+    created = Column(DateTime, default=datetime.datetime.now)
+
+    def __init__(self, *args, **kwargs):
+        super(App, self).__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return "<%s:%s>" % (self.__tablename__, self.appkey)
+
+    def __str__(self):
+        return "<%s:%s>" % (self.__tablename__, self.appkey)
+
+    def can_save(self):
+        return self.name and self.appkey and self.secret
+
+    def generate_secret(self):
+        self.secret = uuid.uuid4().get_hex()
+
+    def app2dict(self):
+        include = ['name', 'appkey', 'secret', 'created']
+        info = self.to_dict(include)
+        info['id'] = self.get_urn('appkey')
+        info['link'] = self.get_link('appkey')
+
+        return info
+
+
 class Auth(Base):
     __tablename__ = 'auths'
 
     _fields = (
+            'site_user_id',
             'user_id', 
-            'app_id',
+            'site_label',
             'access_token',
             'access_secret',
             'expired',
@@ -82,24 +122,25 @@ class Auth(Base):
             'created',
             )
 
-    id = Column(Integer, primary_key=True)
+    WEIBO, RENREN, DOUBAN = 'weibo', 'renren', 'douban'
+
+    site_user_id = Column(String(30), primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"))
-    app_id = Column(Integer, ForeignKey('apps.id', ondelete="CASCADE"))
+    site_label = Column(String(20))
     access_token = Column(String(64))
     access_secret = Column(String(64))
-    expired = Column(Integer)
+    expired = Column(Integer, default=-1)
     updated = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
     created = Column(DateTime, default=datetime.datetime.now)
 
     user = relation('User', backref=backref('auths', order_by=created,  cascade="all, delete, delete-orphan"))
-    app = relation('App', backref=backref('auths', order_by=created, cascade="all, delete, delete-orphan"))
 
     def __init__(self, *args, **kwargs):
         super(Auth, self).__init__(*args, **kwargs)
 
     def can_save(self):
-        return self.user_id and self.app_id and self.access_token \
-                and self.secret and expired
+        return self.user_id and self.site_user_id \
+                and self.access_token  and self.access_secret
 
     def owner_by(self, u):
         return u and u.id == self.user_id
@@ -107,64 +148,31 @@ class Auth(Base):
     def admin_by(self, u):
         return self.owner_by(u) or u.is_admin
 
+    def get_outer_id(self):
+        return self.site_user_id[len(self.site_label)+1:]
+
     def __repr__(self):
-        return "<auth:%s>" % self.key
+        return "<%s:%s>" % (self.__tablename__, self.site_user_id)
 
     def __str__(self):
-        return "<auth:%s>" % self.key
+        return "<%s:%s>" % (self.__tablename__, self.site_user_id)
 
     def auth2dict(self):
-        include = ['access_token', 'access_secret', 'expired', 'updated', 'created']
+        include = ['site_user_id', 'site_label','access_token',
+                'access_secret', 'expired', 'updated', 'created']
 
         info = self.to_dict(include)
-        info['id'] = self.get_urn_id()
+        info['id'] = self.get_urn('site_user_id')
         info['link'] = self.get_link()
-        info['app'] = self.app.app2dict()
-        info['user'] = self.user.user2dict()
-
-
-class App(Base):
-    __tablename__ = 'apps'
-
-    _fields = (
-            'name',
-            'key',
-            'sec',
-            'desp',
-            )
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(20))
-    key = Column(String(20))
-    sec = Column(String(32))
-    desp = Column(String(100), nullable=True)
-
-    def __init__(self, *args, **kwargs):
-        super(App, self).__init__(*args, **kwargs)
-
-    def __repr__(self):
-        return "<app:%s>" % self.key
-
-    def __str__(self):
-        return "<app:%s>" % self.key
-
-    def can_save(self):
-        return self.name and self.key and self.sec
-
-    def app2dict(self):
-        include = ['name', 'key', 'sec', 'desc']
-
-        info = self.to_dict(include)
-        info['link'] = self.get_link()
-        info['id'] = self.get_urn_id()
+        info['user'] = self.user.user2dict4link()
 
 
 class User(Base):
     __tablename__ = 'users'
 
     _fields = (
-            'email',
-            'token',
+            'userkey',
+            'secret',
             'name',
             'phone',
             'avatar',
@@ -180,8 +188,8 @@ class User(Base):
     USER, MERCHANT, ADMIN = 100, 200, 300
 
     id = Column(Integer, primary_key=True)
-    email = Column(String(60), unique=True)
-    token = Column(String(32))
+    userkey = Column(String(30), unique=True)
+    secret = Column(String(32))
     name = Column(String(20))
     phone = Column(String(15), nullable=True)
     avatar = Column(String(100), nullable=True)
@@ -199,13 +207,13 @@ class User(Base):
         super(User, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return "<user:%s>" % self.email
+        return "<%s:%s>" % (self.__tablename__, self.userkey)
 
     def __str__(self):
-        return "<user:%s>" % self.email
+        return "<%s:%s>" % (self.__tablename__, self.userkey)
 
     def can_save(self):
-        return self.email and self.token and self.name 
+        return self.userkey and self.secret and self.name 
 
     def owner_by(self, u):
         return u and u.id == self.id
@@ -215,17 +223,21 @@ class User(Base):
 
     @property
     def is_admin(self):
-        return self.role == self.USER
+        return self.role == self.ADMIN
 
-    def authenticate(self, token):
-        return self.token == token
+    @property
+    def is_merchant(self):
+        return self.role == self.MERCHANT
+
+    def authenticate(self, secret):
+        return self.secret == secret
 
     def user2dict(self):
         include=['name', 'avatar', 'phone', 'brief',
                 'block', 'role', 'updated', 'created']
 
         info = self.to_dict(include)
-        info['id'] = self.get_urn_id()
+        info['id'] = self.get_urn()
         info['link'] = self.get_link()
         info['avatar_link'] = self.get_avatar_link()
         info['loud_num'] = self.loud_num
@@ -238,7 +250,8 @@ class User(Base):
         return info
 
     def user2dict4auth(self):
-        info = self.to_dict(include=['name', 'token', 'email', 'updated'])
+        # FIXME maybe something more about auths etc. 
+        info = self.to_dict(include=['name', 'secret', 'userkey', 'updated'])
         return info
 
     def user2dict4redis(self):
@@ -247,18 +260,27 @@ class User(Base):
 
     def user2dict4link(self):
         info = {
-                'id': self.get_urn_id(),
+                'id': self.get_urn(),
                 'link': self.get_link(),
                 }
 
         return info
 
     def get_avatar_link(self):
-        return "%s/%s" % (options.static_uri, self.avatar)
+        link = ''
+        if self.avatar:
+            if self.avatar[:7] == 'http://':
+                link = self.avatar
+            else:
+                link = "%s/%s" % (options.static_uri, self.avatar)
+
+        return link
 
     def generate_avatar_path(self):
-        if self.email:
-            self.avatar = 'i/%s.jpg' % hashlib.md5(str(self.email)).hexdigest()
+        self.avatar = 'i/%s.jpg' % self.userkey
+
+    def generate_secret(self):
+        self.secret = uuid.uuid4().get_hex()
 
 
 class Prize(Base):
@@ -273,8 +295,8 @@ class Prize(Base):
             )
 
     #id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
-    loud_id = Column(Integer, ForeignKey('louds.id', ondelete='CASCADE'))
+    loud_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+    user_id = Column(Integer, ForeignKey('louds.id', ondelete='CASCADE'))
     content = Column(String(70), nullable=True)
     has_star = Column(Boolean, default=False)
     created = Column(DateTime, default=datetime.datetime.now)
@@ -286,10 +308,10 @@ class Prize(Base):
         super(Prize, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return "<prize:%s>" % self.id
+        return "<%s:%s>" % (self.__tablename__, self.loud_id)
 
     def __str__(self):
-        return "<prize:%s>" % self.id
+        return "<%s:%s>" % (self.__tablename__, self.loud_id)
 
     def can_save(self):
         return self.user_id and self.loud_id
@@ -304,7 +326,7 @@ class Prize(Base):
         include = ['content', 'has_star', 'created']
 
         info = self.to_dict(include)
-        info['id'] = self.get_urn_id()
+        info['id'] = self.get_urn('loud_id')
         info['link'] = self.get_link()
         info['provider'] = self.loud.user.user2dict4link()
         #info['loud'] = self.loud.loud2dict()
@@ -347,10 +369,10 @@ class Reply(Base):
         super(Reply, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return "<reply:%s>" % self.id
+        return "<%s:%s>" % (self.__tablename__, self.id)
 
     def __str__(self):
-        return "<reply:%s>" % self.id
+        return "<%s:%s>" % (self.__tablename__, self.id)
 
     def can_save(self):
         return self.user_id and self.loud_id and self.content \
@@ -367,7 +389,7 @@ class Reply(Base):
         include = ['content', 'lat', 'lon', 'flat', 'flon', 'address', 'created']
 
         info = self.to_dict(include)
-        info['id'] = self.get_urn_id()
+        info['id'] = self.get_urn()
         info['link'] = self.get_link()
         info['user'] = self.user.user2dict4link()
         #info['loud'] = self.loud.loud2dict()
@@ -421,10 +443,10 @@ class Loud(Base):
         super(Loud, self).__init__(*args, **kwargs)
 
     def __repr__(self):
-        return "<loud:%s>" % self.id
+        return "<%s:%s>" % (self.__tablename__, self.id)
 
     def __str__(self):
-        return "<loud:%s>" % self.id
+        return "<%s:%s>" % (self.__tablename__, self.id)
 
     def can_save(self):
         return self.user_id and self.content and self.lat and self.lon \
@@ -441,7 +463,7 @@ class Loud(Base):
                 'flat', 'flon', 'updated', 'created']
 
         info = self.to_dict(include)
-        info['id'] = self.get_urn_id()
+        info['id'] = self.get_urn()
         info['link'] = self.get_link()
         info['user'] = self.user.user2dict4link()
         info['replies_link'] = url_concat('%s%s' % 

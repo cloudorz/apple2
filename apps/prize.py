@@ -5,8 +5,8 @@ from tornado.options import options
 
 from apps import BaseRequestHandler
 from apps.models import User, Loud, Prize
-from utils.decorator import authenticated, availabelclient
-from utils.tools import generate_password, QDict, make_md5
+from utils.decorator import authenticated, validclient
+from utils.tools import QDict, make_md5
 from utils.escape import json_encode, json_decode
 
 class PrizeHandler(BaseRequestHandler):
@@ -65,4 +65,4 @@ class PrizeHandler(BaseRequestHandler):
             self.set_status(201)
             self.set_header('Location', prize.get_link())
         else:
-            raise HTTPError(400)
+            raise HTTPError(400, "Save the data error.")

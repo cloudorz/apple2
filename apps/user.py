@@ -7,7 +7,7 @@ from tornado.options import options
 
 from apps import BaseRequestHandler
 from apps.models import User, Loud
-from utils.decorator import authenticated, availabelclient
+from utils.decorator import authenticated, validclient
 from utils.imagepp import save_images
 from utils.sp import sms_send, ret_code2desc
 from utils.tools import generate_password, QDict, make_md5
@@ -65,23 +65,6 @@ class UserHandler(BaseRequestHandler):
 
             self.render_json(user_collection)
 
-    @availabelclient
-    def post(self, uid):
-        data = self.get_data()
-
-        user = User()
-        user.from_dict(data)
-        # after the phone set in
-        user.generate_avatar_path()
-
-        if user.save():
-            self.set_status(201)
-            self.set_header('Location', user.get_link())
-        else:
-            raise HTTPError(400)
-
-        self.finish()
-
     @authenticated
     def put(self, uid):
         ''' The User object can't modify phone
@@ -92,11 +75,11 @@ class UserHandler(BaseRequestHandler):
         data = self.get_data()
         if self.current_user.is_admin or \
                 user.owner_by(self.current_user) and \
-                not ({'email', 'role', 'token'} & set(data)):
+                not ({'userkey', 'role', 'token'} & set(data)):
             user.from_dict(data)
             user.save()
         else:
-            raise HTTPError(403)
+            raise HTTPError(403, "No permission.")
 
         self.set_status(200)
         self.finish()
@@ -105,57 +88,26 @@ class UserHandler(BaseRequestHandler):
     def delete(self, uid):
         # PS: delete all relation data user_id = 0
         user = User.query.get(uid)
-        if not user: raise HTTPError(404)
 
-        if user.admin_by(self.current_user):
-            self.db.delete(user) 
-            self.db.commit()
-        else:
-            raise HTTPError(403)
+        if user:
+            if user.admin_by(self.current_user):
+                self.db.delete(user) 
+                self.db.commit()
+            else:
+                raise HTTPError(403, "No permission.")
 
         self.set_status(200)
         self.finish()
 
 
-class LoginHandler(BaseRequestHandler):
-    # TODO wait for change
-
-    @availabelclient
-    def post(self):
-        new_info = self.get_data()
-        if 'phone' in new_info and 'password' in new_info:
-            user = User.query.get_by_phone(new_info['phone'])
-            if user and user.authenticate(new_info['password']):
-                user.token = uuid.uuid5(uuid.NAMESPACE_URL, "%s%s" % (user.phone,
-                    options.token_secret)).hex
-
-                info = user.user2dict_by_auth() # must before save
-		key = 'users:%s' % user.token
-                self.rdb.set(key, json_encode(user.user2dict4redis()))
-                self.rdb.expire(key, 3600)
-
-                user.save()
-
-                self.render_json(info) 
-                return 
-            else:
-                self.set_status(406)
-                msg = self.message("Password or phone is not correct.")
-        else:
-            self.set_status(400)
-            msg = self.message("phone, password field required.")
-
-        self.render_json(msg)
-
-
 class UploadHandler(BaseRequestHandler):
     # TODO wait for test
 
-    @availabelclient
+    @validclient
     def post(self):
         if 'photo' in self.request.files:
             if not save_images(self.request.files['photo']):
-                raise HTTPError(501)
+                raise HTTPError(501, "save image error.")
         else:
             raise HTTPError(400)
 

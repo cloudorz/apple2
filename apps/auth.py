@@ -1,150 +1,246 @@
 # coding: utf-8
 
-from tornado.web import HTTPError
+import tornado.web
 
-from apps import BaseRequestHandler
-from apps.models import User, Loud, Auth, App
-from utils.decorator import authenticated, availabelclient, admin
+from tornado.web import HTTPError
+from tornado.httputil import url_concat
+from tornado.options import options
+
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
+
+from apps import BaseRequestHandler, DoubanMixin, WeiboMixin
+from apps.models import User, Loud, Auth
+from utils.decorator import authenticated, validclient, admin
 from utils.escape import json_encode, json_decode
+from utils.tools import QDict
+
+DOUBAN_SAY_ATOM  = '<?xml version="1.0" encoding="UTF-8"?>\
+                    <entry xmlns:ns0="http://www.w3.org/2005/Atom" xmlns:db="http://www.douban.com/xmlns/">\
+                    <content>%s</content>\
+                    </entry>'
+
+class DoubanHandler(BaseRequestHandler, DoubanMixin):
+
+    @tornado.web.asynchronous
+    def get(self):
+        if self.get_argument("oauth_token", None):
+            self.get_authenticated_user(self._on_auth)
+            return
+
+        self.authorize_redirect(self.reverse_url('douban'))
+
+    def _on_auth(self, outer_user):
+        if not outer_user:
+            raise HTTPError(500, "Douban auth failed.")
+
+        auth_id = "%s_%s" % (Auth.DOUBAN, outer_user['access_token']['douban_user_id'])
+        user = User.query.get_by_userkey(self.current_user and self.current_user.userkey or auth_id)
+        auth = Auth.query.get(auth_id)
+
+        # create or update the user
+        if user is None and auth is None:
+            # user data
+            user_data = {}
+            user_data['userkey'] = auth_id
+            user_data['name'] = outer_user['name']
+            user_data['avatar'] = outer_user['avatar']
+            user_data['brief'] = outer_user['brief']
+
+            user = User()
+            user.from_dict(user_data)
+
+            user.generate_secret()
+            if not user.save():
+                raise HTTPError(500, 'Save auth user info error.')
+
+        # auth data
+        auth_data = {}
+        auth_data['site_label'] = Auth.DOUBAN
+        auth_data['access_token'] = outer_user['access_token']['key']
+        auth_data['access_secret'] = outer_user['access_token']['secret']
+        auth_data['expired'] = outer_user['expired']
+
+        # create or update the auth
+        if auth is None:
+            auth = Auth()
+            auth_data['user_id'] = user.id
+            auth_data['site_user_id'] = auth_id
+
+        auth.from_dict(auth_data)
+        if not auth.save():
+            raise HTTPError(500, "Failed auth with douban account.")
+
+        self.render_json(auth.user.user2dict4auth() if auth.user.id>0 else {})
+        self.finish()
+
+    @authenticated
+    @tornado.web.asynchronous
+    def post(self):
+        try:
+            douban_auth = Auth.query.filter(Auth.user_id==self.current_user.id).filter(Auth.site_label==Auth.DOUBAN).one()
+        except (NoResultFound, MultipleResultsFound):
+            raise HTTPError(500, 'No douban auth or multi douban accounts.')
+        else:
+            access_token = {
+                    'key': douban_auth.access_token,
+                    'secret': douban_auth.access_secret,
+                    'douban_user_id': douban_auth.get_outer_id(),
+                    }
+
+        data = self.get_data()
+        default_content = "我正在使用乐帮，请关注乐帮小站http://site.douban.com/135015/"
+        content = DOUBAN_SAY_ATOM % data.get('content', default_content)
+
+        self.douban_request(
+                "/miniblog/saying",
+                callback=self._on_post_say,
+                access_token=access_token,
+                method='POST',
+                body=content,
+                )
+
+    def _on_post_say(self, res):
+        if not res: raise HTTPError(500, "Post saying error.")
+        self.set_status(201)
+        self.finish()
+
+
+class WeiboHandler(BaseRequestHandler, WeiboMixin):
+
+    @tornado.web.asynchronous
+    def get(self):
+        code = self.get_argument("code", None)
+        if code:
+            self.get_authenticated_user(code, self._on_auth)
+            return
+
+        self.weibo_authorize_redirect()
+
+    def _on_auth(self, outer_user):
+        if not outer_user:
+            raise HTTPError(500, "Weibo auth failed.")
+
+        auth_id = "%s_%s" % (Auth.WEIBO, outer_user['access_token']['uid'])
+        user = User.query.get_by_userkey(self.current_user and self.current_user.userkey or auth_id)
+        auth = Auth.query.get(auth_id)
+
+        # create or update the user
+
+        if user is None and auth is None:
+            # user data
+            user_data = {}
+            user_data['userkey'] = auth_id
+            user_data['name'] = outer_user['screen_name']
+            user_data['avatar'] = outer_user['avatar']
+            user_data['brief'] = outer_user['brief']
+
+            user = User()
+            user.from_dict(user_data)
+
+            user.generate_secret()
+            if not user.save():
+                raise HTTPError(500, 'Save auth user info error.')
+
+        # auth data
+        auth_data = {}
+        auth_data['site_label'] = Auth.WEIBO
+        auth_data['access_token'] = outer_user['access_token']['access_token']
+        auth_data['access_secret'] = "weibo oauth2"
+        auth_data['expired'] = outer_user['access_token']['expires_in'] # maybe error
+
+        # create or update the auth
+        if auth is None:
+            auth = Auth()
+            auth_data['site_user_id'] = auth_id
+            auth_data['user_id'] = user.id
+
+        auth.from_dict(auth_data)
+        if not auth.save():
+            raise HTTPError(500, "Failed auth with weibo account.")
+
+        self.render_json(auth.user.user2dict4auth() if auth.user.id>0 else {})
+        self.finish()
+
+    @authenticated
+    @tornado.web.asynchronous
+    def post(self):
+        try:
+            weibo_auth = Auth.query.filter(Auth.user_id==self.current_user.id).filter(Auth.site_label==Auth.WEIBO).one()
+        except (NoResultFound, MultipleResultsFound):
+            raise HTTPError(500, 'No weibo auth or multi weibo accounts.')
+        else:
+            access_token = weibo_auth.access_token
+
+        data = self.get_data()
+        default_content = "我正在使用乐帮，请关注@-乐帮- http://whohelp.me"
+        content = data.get('content', default_content)
+
+        self.weibo_request(
+                "statuses/update",
+                method='POST',
+                callback=self._on_post_say,
+                access_token=access_token,
+                status=content,
+                )
+
+    def _on_post_say(self, res):
+        if not res:
+            raise HTTPError(500, "Post weibo error.")
+
+        self.set_status(201)
+        self.finish()
 
 
 class AuthHandler(BaseRequestHandler):
 
     @authenticated
+    @admin
     def get(self, aid):
         if aid:
             auth = Auth.query.get(aid)
             if not auth: raise HTTPError(404)
 
-            if self.current_user.is_admin or \
-                    auth.owner_by(self.current_user):
-                info = auth.auth2dict()
-                self.render_json(info)
-            else:
-                raise HTTPError(404)
+            info = auth.auth2dict()
+            self.render_json(info)
         else:
-            # TODO add admin get all auths
+            q = QDict(
+                    q=self.get_argument('q', ""),
+                    sort=self.get_argument('qs'),
+                    start=int(self.get_argument('st')),
+                    num=int(self.get_argument('qn')),
+                    )
+
+            query_auths = Auth.query.filter(user_id==self.current_user.id)
+            if q.q:
+                query_auths = query_auths.filter(Auth.site_user_id.like('%'+q.q+'%'))
+
             auth_collection = {
-                    'auths': [e.auth2dict() for e in self.current_user.auths],
+                    'auths': [e.auth2dict() for e in query_auths.order_by(q.sort).limit(q.num).offset(q.start)],
                     'total': self.current_user.count(),
                     'link': self.full_uri(),
                     }
 
+            if q.start + q.num < total:
+                query_dict['st'] = q.start + q.num
+                auth_collection['next'] = self.full_uri(query_dict)
+
+            if q.start > 0:
+                query_dict['st'] = max(q.start - q.num, 0)
+                auth_collection['prev'] = self.full_uri(query_dict)
+
+
             self.render_json(auth_collection)
 
     @authenticated
-    def post(self, aid):
-        auth = Auth()
-
-        data = self.get_data()
-        auth.from_dict(data)
-
-        auth.user_id = self.current_user.id
-
-        if auth.save():
-            self.set_status(201)
-            self.set_header('Location', auth.get_link())
-        else:
-            raise HTTPError(400)
-
-        self.finish()
-
-    @authenticated
-    def put(self, aid):
-
-        auth = Auth.query.get(aid)
-
-        if not auth: raise HTTPError(404)
-        
-        data = self.get_data()
-        if self.current_user.is_admin or \
-                auth.owner_by(self.current_user) and \
-                not ({'app_id', 'user_id'}) & set(data):
-            auth.from_dict(data)
-            auth.save()
-        else:
-            raise HTTPError(403)
-
-        self.set_status(200)
-        self.finish()
-
-    @authenticated
     def delete(self, aid):
         auth = Auth.query.get(aid)
-        if not auth: raise HTTPError(404)
 
-        if auth.admin_by(self.current_user):
-            self.db.delete(auth)
-            self.db.commit()
-        else:
-            raise HTTPError(403)
-
-        self.set_status(200)
-        self.finish()
-
-
-class AppHandler(BaseRequestHandler):
-    
-    @authenticated
-    @admin
-    def get(self, aid):
-        if aid:
-            app = App.query.get(aid)
-            if not app: raise HTTPError(404)
-
-            info = app.app2dict()
-            self.render_json(info)
-        else:
-            app_collection = {
-                    'apps': [e.app2dict() for e in App.query.all()],
-                    'total': App.query.count(),
-                    'link': self.full_uri(),
-                    }
-            self.render_json(app_collection)
-
-    @authenticated
-    @admin
-    def post(self, aid):
-        data = self.get_data()
-
-        app = App()
-        app.from_dict(data)
-
-        if app.save():
-            self.set_status(201)
-            self.set_header('Location', app.get_link())
-        else:
-            raise HTTPError(400)
-
-        self.finish()
-
-    @authenticated
-    @admin
-    def put(self, aid):
-        app = App.query.get(aid)
-        if not app: raise HTTPError(404)
-
-        if app.admin_by(self.current_user):
-            data = self.get_data()
-            app.from_dict(data)
-            app.save()
-        else:
-            raise HTTPError(403)
-
-        self.set_status(200)
-        self.finish()
-
-    @authenticated
-    @admin
-    def delete(self, aid):
-        app =App.query.get(aid)
-        if not app: raise HTTPError(404)
-
-        if app.admin_by(self.current_user):
-            self.db.delete(app)
-            self.db.commit()
-        else:
-            raise HTTPError(403)
+        if auth is not None:
+            if auth.admin_by(self.current_user):
+                self.db.delete(auth)
+                self.db.commit()
+            else:
+                raise HTTPError(403, "Admin permission required.")
 
         self.set_status(200)
         self.finish()

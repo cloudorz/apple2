@@ -5,6 +5,8 @@
 3. add some method to Base
 '''
 
+import urlparse, logging
+
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import class_mapper, Query
 from sqlalchemy.orm.exc import UnmappedClassError, NoResultFound, MultipleResultsFound
@@ -33,6 +35,7 @@ sql_db = SQLAlchemy()
 class BaseQuery(Query):
     ''' common custom query
     '''
+    # FIXME test it
     def get_by_key(self, tid):
         try:
             obj = self.filter_by(id=tid, block=False).one()
@@ -71,24 +74,26 @@ def obj_from_dict(self, data):
 def obj_save(self):
     if self.can_save():
         try:
-            not self.id and self.db.add(self)
+            self.db.add(self)
             self.db.commit()
-        except:
+        except Exception, e:
             self.db.rollback()
-            raise
+            logging.warning("Warning: %s" % e.message)
+            return False
 
         return True
 
-def fake_get_urn_id(self):
-    return "urn:%s:%s" % (self.__tablename__, self.id)
+def fake_get_urn(self, attr='id'):
+    return "urn:%s:%s" % (self.__tablename__, getattr(self, attr))
 
-def obj_get_link(self):
-    url_name = self.__tablename__
-    return "%s%s" % (options.site_uri, self.reverse_uri(url_name, self.id))
+def obj_get_link(self, attr='id'):
+    #return "%s%s" % (options.site_uri, self.reverse_uri(url_name, self.id))
+    return urlparse.urljoin(options.site_uri,
+            self.reverse_uri(self.__tablename__, getattr(self, attr)))
         
 
 Base.to_dict = obj_to_dict
 Base.from_dict = obj_from_dict
 Base.save = obj_save
-Base.get_urn_id = fake_get_urn_id
+Base.get_urn = fake_get_urn
 Base.get_link = obj_get_link

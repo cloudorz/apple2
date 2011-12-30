@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import hashlib, datetime, sys
+import logging
 
 import tornado.httpclient
 from tornado.web import HTTPError
@@ -37,7 +38,11 @@ class LoudHandler(BaseRequestHandler):
         http_client.fetch(mars_location_uri, callback=self.on_e2m_fetch)
 
     def on_e2m_fetch(self, rsp):
-        if rsp.error: raise HTTPError(500)
+
+        if rsp.error:
+            msg = "Error response %s fetching %s" % (rsp.error, rsp.request.url)
+            logging.warning(msg)
+            raise HTTPError(500, msg)
 
         geo = self.dejson(rsp.body)
         self.loud_data['flat'], self.loud_data['flon'] = geo.values()
@@ -47,7 +52,11 @@ class LoudHandler(BaseRequestHandler):
         http_client.fetch(mars_addr_uri, callback=self.on_m2addr_fetch)
 
     def on_m2addr_fetch(self, rsp):
-        if rsp.error: raise HTTPError(500)
+
+        if rsp.error:
+            msg = "Error response %s fetching %s" % (rsp.error, rsp.request.url)
+            logging.warning(msg)
+            raise HTTPError(500, msg)
 
         if rsp.body:
             policital, self.loud_data['address'] = rsp.body.split('#')
@@ -78,7 +87,7 @@ class LoudHandler(BaseRequestHandler):
             loud.from_dict(data)
             loud.save()
         else:
-            raise HTTPError(403)
+            raise HTTPError(403, "The loud is not existed or No permission to operate")
 
         self.set_status(200)
         self.finish()
@@ -103,11 +112,11 @@ class SearchLoudHandler(BaseRequestHandler):
         if ':' in condition:
             field, value = condition.split(':')
         else:
-            raise HTTPError(400)
+            raise HTTPError(400, "condition's format field:value")
 
         handle_q = {
-                'author': lambda email: Loud.query\
-                        .filter(Loud.user.has(User.email==email)),
+                'author': lambda userkey: Loud.query\
+                        .filter(Loud.user.has(User.userkey==userkey)),
                 'position': lambda data: Loud.query\
                         .get_by_cycle2(*data.split(',')),
                 'key': lambda data: Loud.query\
@@ -153,7 +162,7 @@ class SearchLoudHandler(BaseRequestHandler):
             # make etag prepare
             self.cur_louds = loud_collection['louds']
         else:
-            raise HTTPError(400)
+            raise HTTPError(400, "Bad Request, search condtion is not allowed.")
 
         self.render_json(loud_collection)
     
@@ -177,7 +186,7 @@ class UpdatedLoudHandler(BaseRequestHandler):
         new_loud_count = Loud.query.cycle_update(lat, lon, self.last_modified_time).count()
 
         if new_loud_count <= 0:
-            raise HTTPError(304)
+            raise HTTPError(304, "Not changed.")
 
         self.render_json({'count': new_loud_count})
 
