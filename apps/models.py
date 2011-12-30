@@ -158,8 +158,7 @@ class Auth(Base):
         return "<%s:%s>" % (self.__tablename__, self.site_user_id)
 
     def auth2dict(self):
-        include = ['site_user_id', 'site_label','access_token',
-                'access_secret', 'expired', 'updated', 'created']
+        include = list(set(self._fields) - {'user_id'})
 
         info = self.to_dict(include)
         info['id'] = self.get_urn('site_user_id')
@@ -403,6 +402,7 @@ class Loud(Base):
     _fields = (
             'user_id',
             'paycate',
+            'paydesc',
             'loudcate',
             'content',
             'lat',
@@ -411,6 +411,7 @@ class Loud(Base):
             'flon',
             'address',
             'status',
+            'expired',
             'updated',
             'created',
             )
@@ -423,6 +424,7 @@ class Loud(Base):
     user_id = Column(Integer, ForeignKey('users.id', ondelete="CASCADE"))
     content = Column(String(70))
     paycate = Column(String(10))
+    paydesc = Column(String(30), nullable=True)
     loudcate = Column(String(10))
     lat = Column(Float, default=0)
     lon = Column(Float, default=0)
@@ -430,6 +432,7 @@ class Loud(Base):
     flon = Column(Float, default=0, nullable=True)
     address = Column(String(30), nullable=True)
     status = Column(SmallInteger, default=SHOW)
+    expired = Column(DateTime) # TODO some default?
     updated = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
     created = Column(DateTime, default=datetime.datetime.now)
 
@@ -450,7 +453,7 @@ class Loud(Base):
 
     def can_save(self):
         return self.user_id and self.content and self.lat and self.lon \
-                and self.paycate and self.loudcate
+                and self.paycate and self.loudcate and self.expired
 
     def owner_by(self, u):
         return u and u.id == self.user_id
@@ -459,8 +462,7 @@ class Loud(Base):
         return self.owner_by(u) or u.is_admin
     
     def loud2dict(self):
-        include=['content', 'paycate', 'loudcate', 'address', 'lat', 'lon',
-                'flat', 'flon', 'updated', 'created']
+        include = list(set(self._fields) - {'user_id', 'status'})
 
         info = self.to_dict(include)
         info['id'] = self.get_urn()

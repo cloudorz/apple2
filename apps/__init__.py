@@ -31,8 +31,7 @@ class BaseRequestHandler(tornado.web.RequestHandler):
 
     # json pickle data 
     def json(self, data):
-        dthandler = lambda obj: obj.isoformat() if isinstance(obj, (datetime.datetime, datetime.date)) else obj
-        return json_encode(data, default=dthandler)
+        return json_encode(data)
 
     # decode json picle data 
     def dejson(self, data):

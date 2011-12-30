@@ -56,3 +56,6 @@ def pretty_time_str(timeobject):
     t = timestamp(timeobject)
     return email.utils.formatedate(t, localtime=False, usegmt=True)
 
+if __name__ == "__main__":
+    # test 
+    pass
