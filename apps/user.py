@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import uuid, datetime, re
+import uuid, re
 
 from tornado.web import HTTPError
 from tornado.options import options

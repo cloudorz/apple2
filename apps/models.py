@@ -14,6 +14,7 @@ from tornado.httputil import url_concat
 from utils.coredb import BaseQuery, Base
 from utils.escape import json_encode, json_decode
 
+now = datetime.datetime.utcnow
 
 # Queries
 class UserQuery(BaseQuery):
@@ -82,7 +83,7 @@ class App(Base):
     appkey = Column(String(30), primary_key=True)
     name = Column(String(20))
     secret = Column(String(32))
-    created = Column(DateTime, default=datetime.datetime.now)
+    created = Column(DateTime, default=now)
 
     def __init__(self, *args, **kwargs):
         super(App, self).__init__(*args, **kwargs)
@@ -130,8 +131,8 @@ class Auth(Base):
     access_token = Column(String(64))
     access_secret = Column(String(64))
     expired = Column(Integer, default=-1)
-    updated = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
-    created = Column(DateTime, default=datetime.datetime.now)
+    updated = Column(DateTime, default=now, onupdate=now)
+    created = Column(DateTime, default=now)
 
     user = relation('User', backref=backref('auths', order_by=created,  cascade="all, delete, delete-orphan"))
 
@@ -198,8 +199,8 @@ class User(Base):
     #loud_num int 0
     role = Column(SmallInteger, default=USER)
     block = Column(Boolean, default=False)
-    updated = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
-    created = Column(DateTime, default=datetime.datetime.now)
+    updated = Column(DateTime, default=now, onupdate=now)
+    created = Column(DateTime, default=now)
 
 
     def __init__(self, *args, **kwargs):
@@ -298,7 +299,7 @@ class Prize(Base):
     user_id = Column(Integer, ForeignKey('louds.id', ondelete='CASCADE'))
     content = Column(String(70), nullable=True)
     has_star = Column(Boolean, default=False)
-    created = Column(DateTime, default=datetime.datetime.now)
+    created = Column(DateTime, default=now)
 
     owner = relation('User', backref=backref('prizes', order_by=created, cascade="all, delete, delete-orphan"))
     loud = relation('Loud', backref=backref('prize', cascade="all, delete, delete-orphan"), uselist=False)
@@ -359,7 +360,7 @@ class Reply(Base):
     flon = Column(Float, default=0, nullable=True)
     address = Column(String(30), nullable=True)
     is_help = Column(Boolean)
-    created = Column(DateTime, default=datetime.datetime.now)
+    created = Column(DateTime, default=now)
 
     user = relation('User', backref=backref('replies', order_by=created,  cascade="all, delete, delete-orphan"))
     loud = relation('Loud', backref=backref('replies', order_by=created,  cascade="all, delete, delete-orphan"))
@@ -433,8 +434,8 @@ class Loud(Base):
     address = Column(String(30), nullable=True)
     status = Column(SmallInteger, default=SHOW)
     expired = Column(DateTime) # TODO some default?
-    updated = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
-    created = Column(DateTime, default=datetime.datetime.now)
+    updated = Column(DateTime, default=now, onupdate=now)
+    created = Column(DateTime, default=now)
 
     # on delete CASCADE make me a lots to fix it. 
     # use this feature you must do two things:

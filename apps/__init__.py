@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import httplib, datetime, traceback, urlparse, urllib
+import httplib, traceback, urlparse, urllib
 import logging
 
 import tornado.web

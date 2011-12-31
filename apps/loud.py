@@ -64,9 +64,9 @@ class LoudHandler(BaseRequestHandler):
         loud = Loud()
         loud.user_id = self.current_user.id
 
-        if self.current_user.is_admin:
-            # admin's loud loud category is 'sys'
-            self.loud_data['loudcate'] = 'sys'
+        #if self.current_user.is_admin:
+        #    # admin's loud loud category is 'sys'
+        #    self.loud_data['loudcate'] = 'sys'
 
         loud.from_dict(self.loud_data)
 
@@ -133,7 +133,7 @@ class SearchLoudHandler(BaseRequestHandler):
                     )
             query_louds = handle_q[field](q.v)
 
-            gmt_now = datetime.datetime.now() - datetime.timedelta(hours=8)
+            gmt_now = datetime.datetime.utcnow()
             self.set_header('Last-Modified', gmt_now.strftime('%a, %d %b %Y %H:%M:%S GMT'))
 
             # composite the results collection
@@ -196,6 +196,6 @@ class UpdatedLoudHandler(BaseRequestHandler):
         ims_time = datetime.datetime(1970,1,1,0,0)
 
         if ims:
-            ims_time = datetime.datetime.strptime(ims, '%a, %d %b %Y %H:%M:%S %Z') + datetime.timedelta(hours=8)
+            ims_time = datetime.datetime.strptime(ims, '%a, %d %b %Y %H:%M:%S %Z')
 
         return ims_time
