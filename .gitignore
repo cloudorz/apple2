@@ -4,3 +4,4 @@ env
 *.db
 .svn
 static/i
+*.patch
