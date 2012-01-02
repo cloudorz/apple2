@@ -4,9 +4,6 @@ import random, datetime, hashlib
 import calendar
 import email.utils
 
-def generate_password():
-    return ''.join(random.sample("abcdefghijkmnpqrstuvwxyz23456789", 6))
-
 class QDict(dict):
     """A dict that allows for object-like property access syntax."""
     def __getattr__(self, name):
@@ -26,6 +23,9 @@ def singleton(aClass):
         return instance[0]
 
     return onCall
+
+def generate_password():
+    return ''.join(random.sample("abcdefghijkmnpqrstuvwxyz23456789", 6))
 
 format = "%Y-%m-%d %H:%M:%S"
 def str2time(date_string, format=format):

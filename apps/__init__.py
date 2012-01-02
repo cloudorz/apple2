@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import httplib, traceback, urlparse, urllib
+import httplib, traceback, urlparse, urllib, base64, hmac, hashlib
 import logging
 
 import tornado.web
@@ -73,44 +73,89 @@ class BaseRequestHandler(tornado.web.RequestHandler):
         self.set_header('Content-Type', 'Application/json; charset=UTF-8')
         self.write(self.json(data))
 
-    def auth_user(self):
-        auth_value = self.request.headers.get('Authorization', None)
-        if auth_value:
-            auth_value = auth_value.strip()
-            prefix, b4 = auth_value.split(" ", 1)
-
-            b4 = b4.strip()
-            if b4:
-                return  b4.decode("base64").split(':', 1)
-
-        return None, None
-
     def get_current_user(self):
 
-        if self.check_valid_client():
-            name, token = self.auth_user()
-            if name and token:
-                user = User.query.get_by_userkey(name)
-                # TODO be in redis
+        auth_header = self.parse_auth_header()
+
+        if auth_header:
+            app = App.query.get(auth_header['auth_app_key'])
+            user = User.query.get_by_userkey(auth_header['auth_user_key'])
+            token = {
+                    'key': user.userkey,
+                    'secret': user.secret
+                    }
+
+            client = {
+                    'key': app.appkey,
+                    'secret': app.secret,
+                    }
+
+            
+            if auth_header['auth_signature'] == self.build_signature(client, token, auth_header):
                 return user
 
         return None
 
-    def check_valid_client(self):
-        app_key = self.get_argument('ak', None)
+    def parse_auth_header(self):
 
-        if app_key:
-            app = App.query.get(app_key)
-        else:
-            app = None
+        auth_value = self.request.headers.get('Authorization', None)
+        if auth_value and auth_value.startswith('Auth '):
+            prefix, value = auth_value.split(" ", 1)
+            value = value.strip()
 
-        return app
+            res = {}
+            for e in value.split(','):
+                k, v = e.strip().split('=', 1)
+                res[k] = v.strip('"')
+            return res
+
+        return None
+
+    def get_normalized_http_method(self):
+        res = self.request.method.upper()
+        return res
+    
+    def get_normalized_http_url(self):
+        req = self.request
+        res = "%s://%s%s" % (req.protocol, req.host, req.path)
+        return res
+
+    def _query_args_a0(self, s):
+        query_args = urlparse.parse_qs(s, keep_blank_values=False)
+        return {k: urllib.unquote(v[0]) for k, v in query_args.items()}
+
+    def get_normalized_parameters(self, auth_header):
+        # from header 
+        args = self._query_args_a0(self.request.query)
+        args.update({k: v for k, v in auth_header.items()
+            if k[:5] == 'auth_' and k != 'auth_signature'})
+        key_values = args.items()
+        key_values.sort()
+
+        res = '&'.join('%s=%s' % (self._url_escape(str(k)), self._url_escape(str(v))) for k, v in key_values)
+        return res
+
+    def build_signature(self, client, token, auth_header):
+        sig = (
+                self._url_escape(self.get_normalized_http_method()),
+                self._url_escape(self.get_normalized_http_url()),
+                self._url_escape(self.get_normalized_parameters(auth_header)),
+                )
+        key = '%s&%s' % (self._url_escape(client['secret']), self._url_escape(token['secret']))
+        raw = '&'.join(sig)
+
+        # hmac object
+        hashed = hmac.new(key, raw, hashlib.sha1)
+
+        return base64.b64encode(hashed.digest())
+
+    def _url_escape(self, s):
+        return urllib.quote(s, safe='~')
 
     def full_uri(self, query_dict=None):
         #return url_unescape(url_concat("%s%s" % (options.site_uri, self.request.path), query_dict))
         #return url_concat(self.request.full_url(), query_dict)
-        req = self.request
-        return url_concat("%s://%s%s" % (req.protocol, req.host, req.path), query_dict)
+        return url_concat(self.get_normalized_http_url(), query_dict)
 
 
 class DoubanMixin(OAuthMixin):
@@ -227,7 +272,6 @@ class WeiboMixin(OAuth2Mixin):
     def _on_weibo_request(self, callback, response):
         if response.error:
             logging.warning("Warn: response %s fetching %s", response.error, response.request.url)
-            print response.body
             callback(None)
             return
 
@@ -290,7 +334,6 @@ class WeiboMixin(OAuth2Mixin):
             return
 
         access_token = json_decode(response.body)
-        print access_token
         self._oauth_get_user(access_token, self.async_callback(
              self._on_oauth_get_user, access_token, callback))
 
