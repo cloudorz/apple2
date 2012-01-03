@@ -269,7 +269,7 @@ class User(Base):
     def get_avatar_link(self):
         link = ''
         if self.avatar:
-            if self.avatar[:7] == 'http://':
+            if self.avatar.startswith('http://'):
                 link = self.avatar
             else:
                 link = "%s/%s" % (options.static_uri, self.avatar)

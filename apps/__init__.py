@@ -68,8 +68,9 @@ class BaseRequestHandler(tornado.web.RequestHandler):
         self.set_header('Content-Type', 'text/plain')
         self.finish()
 
-    # render data string for response
     def render_json(self, data, **kwargs):
+        ''' Render data string(json) for response.
+        '''
         self.set_header('Content-Type', 'Application/json; charset=UTF-8')
         self.write(self.json(data))
 
@@ -78,8 +79,24 @@ class BaseRequestHandler(tornado.web.RequestHandler):
         auth_header = self.parse_auth_header()
 
         if auth_header:
+            required_params = {
+                    "auth_app_key",
+                    "auth_user_key",
+                    "auth_once",
+                    "auth_timestamp",
+                    "auth_signature_method",
+                    "auth_signature",
+                    }
+            given_params = set(auth_header)
+
+            if not (required_params <= given_params):
+                raise HTTPError(400, "Bad Request. Lack params: %s" % 
+                        ', '.join(required_params - given_params)
+                        )
+
             app = App.query.get(auth_header['auth_app_key'])
             user = User.query.get_by_userkey(auth_header['auth_user_key'])
+
             token = {
                     'key': user.userkey,
                     'secret': user.secret
@@ -90,9 +107,14 @@ class BaseRequestHandler(tornado.web.RequestHandler):
                     'secret': app.secret,
                     }
 
-            
-            if auth_header['auth_signature'] == self.build_signature(client, token, auth_header):
+            reauth_signature = self.build_signature(client, token, auth_header)
+            if auth_header['auth_signature'] == reauth_signature:
                 return user
+            else:
+                raise HTTPError(400,
+                        "Bad Request. signature dismatch, expect %s, but given %s" %
+                        (reauth_signature, auth_header['auth_signature'])
+                        )
 
         return None
 
