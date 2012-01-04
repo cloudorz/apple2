@@ -29,8 +29,8 @@ define('port', default=8000, help="run on the given port", type=int)
 #URI
 #define('site_uri', default="https://n2u.in", type=str, help="site uri") 
 #define('static_uri', default="http://s.n2u.in", type=str, help="static uri")
-define('site_uri', default="http://localhost", type=str, help="site uri") 
-define('static_uri', default="http://localhost/static", type=str, help="static uri")
+define('site_uri', default="http://192.168.0.124", type=str, help="site uri") 
+define('static_uri', default="http://192.168.0.124/static", type=str, help="static uri")
 define('geo_uri', default="http://l.n2u.in", type=str, help="locaiton and address parser uri")
 
 #args

@@ -1,10 +1,11 @@
 # coding: utf-8
 
-import hashlib, datetime, sys
-import logging
+import hashlib, datetime, logging
 
 import tornado.httpclient
-from tornado.web import HTTPError
+
+from tornado import gen
+from tornado.web import asynchronous, HTTPError
 from tornado.options import options
 
 from apps import BaseRequestHandler
@@ -27,54 +28,49 @@ class LoudHandler(BaseRequestHandler):
             self.finish()
 
     @authenticated
-    @tornado.web.asynchronous
+    @asynchronous
+    @gen.engine
     def post(self, lid):
 
-        self.loud_data = self.get_data()
-        lat, lon = self.loud_data['lat'], self.loud_data['lon']
-
-        mars_location_uri = "%s%s" % (options.geo_uri, '/e2m/%f,%f' % (lat, lon))
+        loud_data = self.get_data()
         http_client = tornado.httpclient.AsyncHTTPClient()
-        http_client.fetch(mars_location_uri, callback=self.on_e2m_fetch)
 
-    def on_e2m_fetch(self, rsp):
+        lat, lon = loud_data['lat'], loud_data['lon']
+        mars_location_uri = "%s/e2m/%f,%f" % (options.geo_uri, loud_data['lat'], loud_data['lon'])
 
-        if rsp.error:
-            msg = "Error response %s fetching %s" % (rsp.error, rsp.request.url)
-            logging.warning(msg)
-            raise HTTPError(500, msg)
+        # first request for mars location
+        location_rsp = yield gen.Task(http_client.fetch, mars_location_uri)
 
-        geo = self.dejson(rsp.body)
-        self.loud_data['flat'], self.loud_data['flon'] = geo.values()
+        loud_data['flat'], loud_data['flon'] = loud_data['lat'], loud_data['lon']
+        if not location_rsp.error:
+            try:
+                geo = self.dejson(location_rsp.body)
+                loud_data['flat'], loud_data['flon'] = geo['lat'], geo['lon']
+            except (ValueError, TypeError):
+                pass
 
-        mars_addr_uri = "%s%s" % (options.geo_uri, '/m2addr/%f,%f' % (geo['lat'], geo['lon']))
-        http_client = tornado.httpclient.AsyncHTTPClient()
-        http_client.fetch(mars_addr_uri, callback=self.on_m2addr_fetch)
+        mars_addr_uri = "%s/m2addr/%f,%f" % (options.geo_uri, loud_data['flat'], loud_data['flon'])
 
-    def on_m2addr_fetch(self, rsp):
+        # second reuest for address for mars location
+        addr_rsp = yield gen.Task(http_client.fetch, mars_addr_uri)
 
-        if rsp.error:
-            msg = "Error response %s fetching %s" % (rsp.error, rsp.request.url)
-            logging.warning(msg)
-            raise HTTPError(500, msg)
-
-        if rsp.body:
-            policital, self.loud_data['address'] = rsp.body.split('#')
+        if not addr_rsp.error and addr_rsp.body:
+            policital, loud_data['address'] = addr_rsp.body.split('#')
 
         loud = Loud()
         loud.user_id = self.current_user.id
 
         #if self.current_user.is_admin:
         #    # admin's loud loud category is 'sys'
-        #    self.loud_data['loudcate'] = 'sys'
+        #    loud_data['loudcate'] = 'sys'
 
-        loud.from_dict(self.loud_data)
+        loud.from_dict(loud_data)
 
         if loud.save():
             self.set_status(201)
             self.set_header('Location', loud.get_link())
         else:
-            self.set_status(400)
+            raise HTTPError(500, "Save data error.")
 
         self.finish()
 

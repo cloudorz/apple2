@@ -46,7 +46,7 @@ class LoudQuery(BaseQuery):
         return loud
 
     def get_by_cycle2(self, user_lat, user_lon):
-        return self.get_by_cycle(user_lat, user_lon).filter(Loud.block==False)
+        return self.get_by_cycle(user_lat, user_lon).filter(Loud.status==Loud.SHOW)
 
     def cycle_update(self, user_lat, user_lon, updated):
         return self.get_by_cycle(user_lat, user_lon).filter(Loud.updated>=updated)
@@ -262,6 +262,7 @@ class User(Base):
         info = {
                 'id': self.get_urn(),
                 'link': self.get_link(),
+                'avatar_link': self.get_avatar_link(),
                 }
 
         return info
@@ -469,6 +470,7 @@ class Loud(Base):
         info['id'] = self.get_urn()
         info['link'] = self.get_link()
         info['user'] = self.user.user2dict4link()
+        info['reply_num'] = self.reply_num
         info['replies_link'] = url_concat('%s%s' % 
                (options.site_uri, self.reverse_uri(Reply.__tablename__, "")),
                 {'lid': self.id, 'qs': "created desc", 'st': 0, 'qn': 20})
