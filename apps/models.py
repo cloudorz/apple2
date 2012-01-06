@@ -250,8 +250,12 @@ class User(Base):
         return info
 
     def user2dict4auth(self):
-        # FIXME maybe something more about auths etc. 
-        info = self.to_dict(include=['name', 'secret', 'userkey', 'updated'])
+
+        include = ['name', 'secret', 'userkey', 'updated', 'phone', 'brief']
+        info = self.to_dict(include)
+        info['id'] = self.get_urn()
+        info['link'] = self.get_link()
+        info['avatar_link'] = self.get_avatar_link()
         return info
 
     def user2dict4redis(self):
@@ -471,6 +475,7 @@ class Loud(Base):
         info['link'] = self.get_link()
         info['user'] = self.user.user2dict4link()
         info['reply_num'] = self.reply_num
+        info['help_num'] = self.help_num
         info['replies_link'] = url_concat('%s%s' % 
                (options.site_uri, self.reverse_uri(Reply.__tablename__, "")),
                 {'lid': self.id, 'qs': "created desc", 'st': 0, 'qn': 20})
@@ -495,3 +500,6 @@ User.to_help_num = column_property(sql.select([sql.func.count(Prize.user_id)]).\
 # loud's replies number
 Loud.reply_num = column_property(sql.select([sql.func.count(Reply.id)]).\
         where(Reply.user_id==Loud.id).as_scalar(), deferred=True)
+
+Loud.help_num = column_property(sql.select([sql.func.count(Reply.id)]).\
+        where(sql.and_(Reply.user_id==Loud.id, Reply.is_help==True)).as_scalar(), deferred=True)
