@@ -392,7 +392,7 @@ class Reply(Base):
         return self.owner_by(u) or u.is_admin
 
     def reply2dict(self):
-        include = ['content', 'lat', 'lon', 'flat', 'flon', 'address', 'created']
+        include = list(set(self._fields) - {'user_id', 'loud_id'})
 
         info = self.to_dict(include)
         info['id'] = self.get_urn()

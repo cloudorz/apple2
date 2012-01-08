@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import tornado.httpclient
 
 from tornado import gen
 from tornado.web import asynchronous, HTTPError
@@ -29,7 +30,7 @@ class ReplyHandler(BaseRequestHandler):
                     start=int(self.get_argument('st')),
                     num=int(self.get_argument('qn')),
                     )
-            query_replies = Reply.query.filter(loud_id==q.lid)
+            query_replies = Reply.query.filter(Reply.loud_id==q.lid)
 
             total = query_replies.count()
             query_dict = {
@@ -61,6 +62,9 @@ class ReplyHandler(BaseRequestHandler):
     def post(self, rid):
 
         reply_data = self.get_data()
+        if not {'lat', 'lon', 'content', 'is_help', 'urn'} <= set(reply_data):
+            raise HTTPError(400, "Bad Request, miss Argument")
+
         http_client = tornado.httpclient.AsyncHTTPClient()
 
         lat, lon = reply_data['lat'], reply_data['lon']
@@ -85,8 +89,9 @@ class ReplyHandler(BaseRequestHandler):
         if not addr_rsp.error and addr_rsp.body:
             policital, reply_data['address'] = addr_rsp.body.split('#')
 
-        reply = reply()
+        reply = Reply()
         reply.user_id = self.current_user.id
+        prefix, reply.loud_id = reply_data['urn'].rsplit(':', 1)
 
         reply.from_dict(reply_data)
 
