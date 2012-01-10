@@ -196,6 +196,7 @@ class User(Base):
     avatar = Column(String(100), nullable=True)
     brief = Column(String(70), nullable=True)
     #to_help_num int 0
+    #be_helped_num int 0
     #star_num int 0
     #loud_num int 0
     role = Column(SmallInteger, default=USER)
@@ -244,6 +245,7 @@ class User(Base):
         info['loud_num'] = self.loud_num
         info['star_num'] = self.star_num
         info['to_help_num'] = self.to_help_num
+        info['be_helped_num'] = self.be_helped_num
         info['prizes_link'] = url_concat('%s%s' % 
                (options.site_uri, self.reverse_uri(Prize.__tablename__, "")),
                {'uid': self.id, 'qs': "created desc", 'st': 0, 'qn': 20})
@@ -263,12 +265,19 @@ class User(Base):
         info = self.to_dict(include=['name', 'phone', 'id', 'role'])
         return info
 
-    def user2dict4link(self):
-        info = {
-                'id': self.get_urn(),
-                'link': self.get_link(),
-                'avatar_link': self.get_avatar_link(),
-                }
+    def user2dict4link(self, *args):
+        include = {'name'}
+        if args:
+            include.update(args)
+
+        info = self.to_dict(include)
+        info['id'] = self.get_urn()
+        info['link'] = self.get_link()
+        info['avatar_link'] = self.get_avatar_link()
+
+        for e in args:
+            if e.endswith('_num'):
+                info[e] = getattr(self, e)
 
         return info
 
@@ -397,7 +406,11 @@ class Reply(Base):
         info = self.to_dict(include)
         info['id'] = self.get_urn()
         info['link'] = self.get_link()
-        info['user'] = self.user.user2dict4link()
+        if self.is_help:
+            info['user'] = self.user.user2dict4link('phone')
+        else:
+            info['user'] = self.user.user2dict4link()
+
         #info['loud'] = self.loud.loud2dict()
 
         return info
@@ -474,7 +487,7 @@ class Loud(Base):
         info = self.to_dict(include)
         info['id'] = self.get_urn()
         info['link'] = self.get_link()
-        info['user'] = self.user.user2dict4link()
+        info['user'] = self.user.user2dict4link('role', 'to_help_num', 'star_num')
         info['reply_num'] = self.reply_num
         info['help_num'] = self.help_num
         info['replies_link'] = url_concat('%s%s' % 
@@ -494,13 +507,17 @@ User.star_num = column_property(sql.select([sql.func.count(Prize.user_id)]).\
         where(sql.and_(Prize.user_id==User.id, Prize.has_star==True)).\
         as_scalar(), deferred=True)
 
+User.be_helped_num = column_property(sql.select([sql.func.count(Loud.user_id)]).\
+        where(sql.and_(Loud.user_id==User.id, Loud.status==Loud.DONE)).\
+        as_scalar(), deferred=True)
+
 # user's help other num
 User.to_help_num = column_property(sql.select([sql.func.count(Prize.user_id)]).\
         where(Prize.user_id==User.id).as_scalar(), deferred=True)
 
 # loud's replies number
 Loud.reply_num = column_property(sql.select([sql.func.count(Reply.id)]).\
-        where(Reply.user_id==Loud.id).as_scalar(), deferred=True)
+        where(Reply.loud_id==Loud.id).as_scalar(), deferred=True)
 
 Loud.help_num = column_property(sql.select([sql.func.count(Reply.id)]).\
-        where(sql.and_(Reply.user_id==Loud.id, Reply.is_help==True)).as_scalar(), deferred=True)
+        where(sql.and_(Reply.loud_id==Loud.id, Reply.is_help==True)).as_scalar(), deferred=True)

@@ -57,12 +57,19 @@ class PrizeHandler(BaseRequestHandler):
     def post(self, pid):
         data = self.get_data()
 
+        reply_data = self.get_data()
+        if not {'loud_urn', 'user_urn', 'content', 'has_star'} <= set(data):
+            raise HTTPError(400, "Bad Request, miss Argument")
+
         prize = Prize()
-        prize.user_id = self.current_user.id
+        prefix, prize.user_id = data['user_urn'].rsplit(':', 1)
+        prefix, prize.loud_id = data['loud_urn'].rsplit(':', 1)
         prize.from_dict(data)
 
-        if user.save():
+        if prize.save():
+            # TODO some thing more 
+            # down change the loud status
             self.set_status(201)
-            self.set_header('Location', prize.get_link())
+            self.set_header('Location', prize.get_link('loud_id'))
         else:
             raise HTTPError(400, "Save the data error.")

@@ -15,7 +15,7 @@ from tornado.web import url
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from apps.loud import LoudHandler, SearchLoudHandler, UpdatedLoudHandler
+from apps.loud import LoudHandler, SearchLoudHandler, UpdatedLoudHandler, OfferHelpUsersHandler
 from apps.user import UserHandler, UploadHandler
 from apps.auth import AuthHandler, DoubanHandler, WeiboHandler
 from apps.app import AppClientHandler
@@ -61,6 +61,7 @@ class Application(tornado.web.Application):
                 url(r'^/auth/(?P<aid>\w+_\w+|)$', AuthHandler, name='auths'),
                 url(r'^/app/(?P<aid>\w+|)$', AppClientHandler, name='apps'),
                 url(r'^/reply/(?P<rid>[1-9]\d*|)$', ReplyHandler, name='replies'),
+                url(r'^/offer-help-users/urn:louds:(?P<lid>[1-9]\d*)', OfferHelpUsersHandler),
                 url(r'^/upload$', UploadHandler),
                 # third party login or authorize
                 url(r'/douban/auth', DoubanHandler, name='douban'),

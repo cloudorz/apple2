@@ -4,12 +4,14 @@ import hashlib, datetime, logging
 
 import tornado.httpclient
 
+from sqlalchemy import sql
+
 from tornado import gen
 from tornado.web import asynchronous, HTTPError
 from tornado.options import options
 
 from apps import BaseRequestHandler
-from apps.models import User, Loud
+from apps.models import User, Loud, Reply
 from utils.decorator import authenticated
 from utils.tools import QDict
 
@@ -100,7 +102,6 @@ class LoudHandler(BaseRequestHandler):
 
 
 class SearchLoudHandler(BaseRequestHandler):
-    # wait for test TODO
 
     @authenticated
     def get(self):
@@ -195,3 +196,13 @@ class UpdatedLoudHandler(BaseRequestHandler):
             ims_time = datetime.datetime.strptime(ims, '%a, %d %b %Y %H:%M:%S %Z')
 
         return ims_time
+
+
+class OfferHelpUsersHandler(BaseRequestHandler):
+
+    @authenticated
+    def get(self, lid):
+        offers = User.query.filter(User.replies.any(sql.and_(Reply.loud_id==lid, Reply.is_help==True)))
+        offer_list = [e.user2dict4link() for e in offers]
+
+        self.render_json(offer_list)

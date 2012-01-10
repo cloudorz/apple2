@@ -1,5 +1,7 @@
 # coding: utf-8
 
+import hashlib
+
 import tornado.httpclient
 
 from tornado import gen
@@ -53,8 +55,19 @@ class ReplyHandler(BaseRequestHandler):
             if q.start > 0:
                 query_dict['st'] = max(q.start - q.num, 0)
                 reply_collection['prev'] = self.full_uri(query_dict)
+
+            # make etag prepare
+            self.cur_replies = reply_collection['replies']
            
             self.render_json(reply_collection)
+
+    def compute_etag(self):
+
+        hasher = hashlib.sha1()
+        if 'cur_replies' in self.__dict__:
+            any(hasher.update(e) for e in sorted(reply['id'] for reply in self.cur_replies))
+
+        return '"%s"' % hasher.hexdigest()
 
     @authenticated
     @asynchronous
