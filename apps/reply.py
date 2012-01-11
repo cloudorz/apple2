@@ -78,6 +78,17 @@ class ReplyHandler(BaseRequestHandler):
         if not {'lat', 'lon', 'content', 'is_help', 'urn'} <= set(reply_data):
             raise HTTPError(400, "Bad Request, miss Argument")
 
+        prefix, loud_id = reply_data['urn'].rsplit(':', 1)
+
+        # the loud precondtion OK
+        loud = Loud.query.get_or_404(loud_id)
+        if loud.be_done() or loud.is_past_due():
+            self.set_status(412)
+            self.render_json({'status': loud.status,
+                'msg': 'Precondition error, loud status changed'})
+            self.finish()
+            return
+
         http_client = tornado.httpclient.AsyncHTTPClient()
 
         lat, lon = reply_data['lat'], reply_data['lon']
@@ -104,7 +115,7 @@ class ReplyHandler(BaseRequestHandler):
 
         reply = Reply()
         reply.user_id = self.current_user.id
-        prefix, reply.loud_id = reply_data['urn'].rsplit(':', 1)
+        reply.loud_id = loud_id
 
         reply.from_dict(reply_data)
 

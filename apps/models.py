@@ -41,7 +41,7 @@ class LoudQuery(BaseQuery):
 
     def get_or_404(self, lid):
         loud = self.get(lid)
-        if not loud: raise HTTPError(404)
+        if not loud: raise HTTPError(404, "此求助信息不存在, 请更新求助列表")
         
         return loud
 
@@ -246,9 +246,9 @@ class User(Base):
         info['star_num'] = self.star_num
         info['to_help_num'] = self.to_help_num
         info['be_helped_num'] = self.be_helped_num
-        info['prizes_link'] = url_concat('%s%s' % 
-               (options.site_uri, self.reverse_uri(Prize.__tablename__, "")),
-               {'uid': self.id, 'qs': "created desc", 'st': 0, 'qn': 20})
+        #info['prizes_link'] = url_concat('%s%s' % 
+        #       (options.site_uri, self.reverse_uri(Prize.__tablename__, "")),
+        #       {'uid': self.id, 'qs': "created desc", 'st': 0, 'qn': 20})
 
         return info
 
@@ -310,13 +310,13 @@ class Prize(Base):
             )
 
     #id = Column(Integer, primary_key=True)
-    loud_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
-    user_id = Column(Integer, ForeignKey('louds.id', ondelete='CASCADE'))
+    loud_id = Column(Integer, ForeignKey('louds.id', ondelete='CASCADE'), primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'))
     content = Column(String(70), nullable=True)
     has_star = Column(Boolean, default=False)
     created = Column(DateTime, default=now)
 
-    owner = relation('User', backref=backref('prizes', order_by=created, cascade="all, delete, delete-orphan"))
+    user = relation('User', backref=backref('prizes', order_by=created, cascade="all, delete, delete-orphan"))
     loud = relation('Loud', backref=backref('prize', cascade="all, delete, delete-orphan"), uselist=False)
 
     def __init__(self, *args, **kwargs):
@@ -342,7 +342,7 @@ class Prize(Base):
 
         info = self.to_dict(include)
         info['id'] = self.get_urn('loud_id')
-        info['link'] = self.get_link()
+        info['link'] = self.get_link('loud_id')
         info['provider'] = self.loud.user.user2dict4link()
         #info['loud'] = self.loud.loud2dict()
 
@@ -480,9 +480,15 @@ class Loud(Base):
 
     def admin_by(self, u):
         return self.owner_by(u) or u.is_admin
+
+    def is_past_due(self):
+        return self.expired < now()
+
+    def be_done(self):
+        return self.status == self.DONE
     
     def loud2dict(self):
-        include = list(set(self._fields) - {'user_id', 'status'})
+        include = set(self._fields) - {'user_id'}
 
         info = self.to_dict(include)
         info['id'] = self.get_urn()
