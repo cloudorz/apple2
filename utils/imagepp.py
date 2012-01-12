@@ -3,13 +3,16 @@
 import os.path, hashlib
 from tornado.options import options
 
-def save_images(http_files):
+def save_images(http_files, user):
 
     for http_file in http_files:
-        name, ext = http_file['filename'].rsplit('.')
-        file_path = os.path.join(options.path, "i/%s.%s" % (hashlib.md5(name).hexdigest(), ext))
+        prefix, ext = http_file['filename'].rsplit('.', 1)
+        filename = "i/%s.%s" % (user.userkey, ext)
+        file_path = os.path.join(options.path, filename)
         with open(file_path, 'wb') as f:
             f.write(http_file['body'])
+            user.avatar = filename
+            user.save()
 
         if not os.path.exists(file_path):
             return False

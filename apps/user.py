@@ -75,7 +75,7 @@ class UserHandler(BaseRequestHandler):
         data = self.get_data()
         if self.current_user.is_admin or \
                 user.owner_by(self.current_user) and \
-                not ({'userkey', 'role', 'token'} & set(data)):
+                not ({'userkey', 'role', 'token', 'avatar'} & set(data)):
             user.from_dict(data)
             user.save()
         else:
@@ -101,14 +101,13 @@ class UserHandler(BaseRequestHandler):
 
 
 class UploadHandler(BaseRequestHandler):
-    # TODO wait for test
 
-    @validclient
+    @authenticated
     def post(self):
         if 'photo' in self.request.files:
-            if not save_images(self.request.files['photo']):
+            if not save_images(self.request.files['photo'], self.current_user):
                 raise HTTPError(501, "save image error.")
         else:
-            raise HTTPError(400)
+            raise HTTPError(400, 'upload parameters dismatch')
 
         self.finish()

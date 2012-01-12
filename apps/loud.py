@@ -113,7 +113,8 @@ class SearchLoudHandler(BaseRequestHandler):
 
         handle_q = {
                 'author': lambda userkey: Loud.query\
-                        .filter(Loud.user.has(User.userkey==userkey)),
+                        .filter(Loud.user.has(User.userkey==userkey))\
+                        .filter(Loud.status!=Loud.DONE),
                 'position': lambda data: Loud.query\
                         .get_by_cycle2(*data.split(',')),
                 'key': lambda data: Loud.query\
@@ -157,19 +158,17 @@ class SearchLoudHandler(BaseRequestHandler):
                 loud_collection['prev'] = self.full_uri(query_dict)
 
             # make etag prepare
-            self.cur_louds = loud_collection['louds']
+            #self.cur_louds = loud_collection['louds']
         else:
             raise HTTPError(400, "Bad Request, search condtion is not allowed.")
 
         self.render_json(loud_collection)
     
-    def compute_etag(self):
-
-        hasher = hashlib.sha1()
-        if 'cur_louds' in self.__dict__:
-            any(hasher.update(e) for e in sorted(loud['id'] for loud in self.cur_louds))
-
-        return '"%s"' % hasher.hexdigest()
+    #def compute_etag(self):
+    #    hasher = hashlib.sha1()
+    #    if 'cur_louds' in self.__dict__:
+    #        any(hasher.update(e) for e in sorted(loud['id'] for loud in self.cur_louds))
+    #    return '"%s"' % hasher.hexdigest()
 
 
 class UpdatedLoudHandler(BaseRequestHandler):
