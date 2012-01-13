@@ -56,18 +56,8 @@ class ReplyHandler(BaseRequestHandler):
                 query_dict['st'] = max(q.start - q.num, 0)
                 reply_collection['prev'] = self.full_uri(query_dict)
 
-            # make etag prepare
-            self.cur_replies = reply_collection['replies']
            
             self.render_json(reply_collection)
-
-    def compute_etag(self):
-
-        hasher = hashlib.sha1()
-        if 'cur_replies' in self.__dict__:
-            any(hasher.update(e) for e in sorted(reply['id'] for reply in self.cur_replies))
-
-        return '"%s"' % hasher.hexdigest()
 
     @authenticated
     @asynchronous
@@ -82,9 +72,16 @@ class ReplyHandler(BaseRequestHandler):
 
         # the loud precondtion OK
         loud = Loud.query.get_or_404(loud_id)
-        if loud.be_done() or loud.is_past_due():
+        if loud.is_past_due():
             self.set_status(412)
-            self.render_json({'status': loud.status,
+            self.render_json({'status': loud.OVERDUE,
+                'msg': 'Precondition error, loud status changed'})
+            self.finish()
+            return
+
+        if loud.be_done():
+            self.set_status(412)
+            self.render_json({'status': loud.DONE,
                 'msg': 'Precondition error, loud status changed'})
             self.finish()
             return

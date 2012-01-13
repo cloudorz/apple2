@@ -69,6 +69,8 @@ class Application(tornado.web.Application):
                 ]
         settings = dict(
                 static_path=os.path.join(os.path.dirname(__file__), 'static'),
+                # secure cookies
+                cookie_secret="5b33a05a25df4609aa6aca4c14c8594b",
                 # OAuth's key and secret
                 douban_consumer_key="0855a87df29f2eac1900f979d7dd8c04",
                 douban_consumer_secret="7524926f6171b225",

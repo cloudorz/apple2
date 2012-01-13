@@ -14,6 +14,7 @@ from tornado.httputil import url_concat
 from utils.coredb import BaseQuery, Base
 from utils.escape import json_encode, json_decode
 
+# using utcnow for all now time
 now = datetime.datetime.utcnow
 
 # Queries
@@ -63,7 +64,7 @@ class LoudQuery(BaseQuery):
         # mysql functions 
         acos, sin, cos, pi, abs = sql.func.acos, sql.func.sin, sql.func.cos, sql.func.pi, sql.func.abs
 
-        return self.filter(Loud.expired > datetime.datetime.utcnow()).\
+        return self.filter(Loud.expired > now()).\
                 filter(sql.or_(Loud.loudcate == 'sys', abs(earth_r*acos(sin(user_lat)*sin(Loud.lat)*cos(user_lon-Loud.lon)+cos(user_lat)*cos(Loud.lat))*pi()/180)<distance))
 
     def get_by_cycle_key(self, user_lat, user_lon, key):
@@ -259,6 +260,8 @@ class User(Base):
         info['id'] = self.get_urn()
         info['link'] = self.get_link()
         info['avatar_link'] = self.get_avatar_link()
+        info['auths'] = {e.site_label:e.get_link('site_user_id') for e in self.auths}
+
         return info
 
     def user2dict4redis(self):
@@ -438,6 +441,7 @@ class Loud(Base):
 
     query_class = LoudQuery
 
+    # P.S overdue can't to test for status
     ERR, OVERDUE, SHOW, DONE = 0, 100, 200, 300
 
     id = Column(Integer, primary_key=True)

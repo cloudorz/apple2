@@ -23,6 +23,10 @@ class DoubanHandler(BaseRequestHandler, DoubanMixin):
 
     @tornado.web.asynchronous
     def get(self):
+
+        if self.current_user:
+            self.set_secure_cookie('userkey', self.current_user.userkey)
+
         if self.get_argument("oauth_token", None):
             self.get_authenticated_user(self._on_auth)
             return
@@ -34,7 +38,8 @@ class DoubanHandler(BaseRequestHandler, DoubanMixin):
             raise HTTPError(500, "Douban auth failed.")
 
         auth_id = "%s_%s" % (Auth.DOUBAN, outer_user['access_token']['douban_user_id'])
-        user = User.query.get_by_userkey(self.current_user and self.current_user.userkey or auth_id)
+        user = User.query.get_by_userkey(self.get_secure_cookie('userkey', None) or auth_id)
+        self.clear_cookie('userkey')
         auth = Auth.query.get(auth_id)
 
         # create or update the user
@@ -59,12 +64,12 @@ class DoubanHandler(BaseRequestHandler, DoubanMixin):
         auth_data['access_token'] = outer_user['access_token']['key']
         auth_data['access_secret'] = outer_user['access_token']['secret']
         auth_data['expired'] = outer_user['expired']
+        auth_data['user_id'] = user.id
+        auth_data['site_user_id'] = auth_id
 
         # create or update the auth
         if auth is None:
             auth = Auth()
-            auth_data['user_id'] = user.id
-            auth_data['site_user_id'] = auth_id
 
         auth.from_dict(auth_data)
         if not auth.save():
@@ -109,6 +114,10 @@ class WeiboHandler(BaseRequestHandler, WeiboMixin):
 
     @tornado.web.asynchronous
     def get(self):
+
+        if self.current_user:
+            self.set_secure_cookie('userkey', self.current_user.userkey)
+
         code = self.get_argument("code", None)
         if code:
             self.get_authenticated_user(code, self._on_auth)
@@ -121,11 +130,11 @@ class WeiboHandler(BaseRequestHandler, WeiboMixin):
             raise HTTPError(500, "Weibo auth failed.")
 
         auth_id = "%s_%s" % (Auth.WEIBO, outer_user['access_token']['uid'])
-        user = User.query.get_by_userkey(self.current_user and self.current_user.userkey or auth_id)
+        user = User.query.get_by_userkey(self.get_secure_cookie('userkey', None) or auth_id)
+        self.clear_cookie('userkey')
         auth = Auth.query.get(auth_id)
 
         # create or update the user
-
         if user is None and auth is None:
             # user data
             user_data = {}
@@ -147,12 +156,12 @@ class WeiboHandler(BaseRequestHandler, WeiboMixin):
         auth_data['access_token'] = outer_user['access_token']['access_token']
         auth_data['access_secret'] = "weibo oauth2"
         auth_data['expired'] = outer_user['access_token']['expires_in'] # maybe error
+        auth_data['site_user_id'] = auth_id
+        auth_data['user_id'] = user.id
 
         # create or update the auth
         if auth is None:
             auth = Auth()
-            auth_data['site_user_id'] = auth_id
-            auth_data['user_id'] = user.id
 
         auth.from_dict(auth_data)
         if not auth.save():
@@ -236,11 +245,14 @@ class AuthHandler(BaseRequestHandler):
         auth = Auth.query.get(aid)
 
         if auth is not None:
-            if auth.admin_by(self.current_user):
-                self.db.delete(auth)
-                self.db.commit()
+            if len(auth.user.auths) > 1:
+                if auth.admin_by(self.current_user):
+                    self.db.delete(auth)
+                    self.db.commit()
+                else:
+                    raise HTTPError(403, "Admin permission required.")
             else:
-                raise HTTPError(403, "Admin permission required.")
+                raise HTTPError(412, "Last one can't del.")
 
         self.set_status(200)
         self.finish()
