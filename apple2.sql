@@ -144,6 +144,8 @@ CREATE TABLE `users` (
   `phone` varchar(15) DEFAULT NULL,
   `avatar` varchar(100) DEFAULT NULL,
   `brief` varchar(70) DEFAULT NULL,
+  `lat` double NULL DEFAULT '-1',
+  `lon` double NULL DEFAULT '-1',
   `role` smallint(3) NOT NULL DEFAULT '100',
   `block` tinyint(1) NOT NULL DEFAULT '0',
   `updated` datetime NOT NULL,

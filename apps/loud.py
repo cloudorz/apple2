@@ -37,7 +37,6 @@ class LoudHandler(BaseRequestHandler):
         loud_data = self.get_data()
         http_client = tornado.httpclient.AsyncHTTPClient()
 
-        lat, lon = loud_data['lat'], loud_data['lon']
         mars_location_uri = "%s/e2m/%f,%f" % (options.geo_uri, loud_data['lat'], loud_data['lon'])
 
         # first request for mars location
@@ -68,9 +67,14 @@ class LoudHandler(BaseRequestHandler):
 
         loud.from_dict(loud_data)
 
+        # update the user last location
+        self.current_user.lat, self.current_user.lon = loud_data['lat'], loud_data['lon']
+
         if loud.save():
             self.set_status(201)
             self.set_header('Location', loud.get_link())
+            # TODO sync third party sns
+            # using redis publish/subscrible
         else:
             raise HTTPError(500, "Save data error.")
 

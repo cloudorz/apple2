@@ -179,6 +179,8 @@ class User(Base):
             'phone',
             'avatar',
             'brief',
+            'lat',
+            'lon',
             'role',
             'block',
             'updated',
@@ -196,6 +198,8 @@ class User(Base):
     phone = Column(String(15), nullable=True)
     avatar = Column(String(100), nullable=True)
     brief = Column(String(70), nullable=True)
+    lat = Column(Float, nullable=True, default=-1)
+    lon = Column(Float, nullable=True, default=-1)
     #to_help_num int 0
     #be_helped_num int 0
     #star_num int 0

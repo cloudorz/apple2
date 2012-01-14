@@ -88,7 +88,6 @@ class ReplyHandler(BaseRequestHandler):
 
         http_client = tornado.httpclient.AsyncHTTPClient()
 
-        lat, lon = reply_data['lat'], reply_data['lon']
         mars_location_uri = "%s/e2m/%f,%f" % (options.geo_uri, reply_data['lat'], reply_data['lon'])
 
         # first request for mars location
@@ -115,6 +114,9 @@ class ReplyHandler(BaseRequestHandler):
         reply.loud_id = loud_id
 
         reply.from_dict(reply_data)
+
+        # update the user last location
+        self.current_user.lat, self.current_user.lon = reply_data['lat'], reply_data['lon']
 
         if reply.save():
             self.set_status(201)
