@@ -73,8 +73,6 @@ class LoudHandler(BaseRequestHandler):
         if loud.save():
             self.set_status(201)
             self.set_header('Location', loud.get_link())
-            # TODO sync third party sns
-            # using redis publish/subscrible
         else:
             raise HTTPError(500, "Save data error.")
 
@@ -173,32 +171,6 @@ class SearchLoudHandler(BaseRequestHandler):
     #    if 'cur_louds' in self.__dict__:
     #        any(hasher.update(e) for e in sorted(loud['id'] for loud in self.cur_louds))
     #    return '"%s"' % hasher.hexdigest()
-
-
-class UpdatedLoudHandler(BaseRequestHandler):
-    # wait for test TODO
-
-    @authenticated
-    def get(self):
-        
-        lat = self.get_argument('lat')
-        lon = self.get_argument('lon')
-        new_loud_count = Loud.query.cycle_update(lat, lon, self.last_modified_time).count()
-
-        if new_loud_count <= 0:
-            raise HTTPError(304, "Not changed.")
-
-        self.render_json({'count': new_loud_count})
-
-    @property
-    def last_modified_time(self):
-        ims = self.request.headers.get('If-Modified-Since', None)
-        ims_time = datetime.datetime(1970,1,1,0,0)
-
-        if ims:
-            ims_time = datetime.datetime.strptime(ims, '%a, %d %b %Y %H:%M:%S %Z')
-
-        return ims_time
 
 
 class OfferHelpUsersHandler(BaseRequestHandler):

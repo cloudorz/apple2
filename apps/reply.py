@@ -4,12 +4,15 @@ import hashlib
 
 import tornado.httpclient
 
+from sqlalchemy import sql
+
 from tornado import gen
 from tornado.web import asynchronous, HTTPError
 from tornado.options import options
 
 from apps import BaseRequestHandler
 from apps.models import User, Loud, Reply
+from apps.rdbm import Message
 from utils.decorator import authenticated, validclient
 from utils.tools import generate_password, QDict, make_md5
 from utils.escape import json_encode, json_decode
@@ -121,6 +124,12 @@ class ReplyHandler(BaseRequestHandler):
         if reply.save():
             self.set_status(201)
             self.set_header('Location', reply.get_link())
+            relative_users = User.query.filter(User.replies.any(
+                sql.and_(Reply.loud_id==reply.loud_id,
+                Reply.user_id!=reply.user_id)
+                ))
+            msg = Message(reply, [e.id for e in relative_users])
+            msg.create()
         else:
             raise HTTPError(500, "Save data error.")
 

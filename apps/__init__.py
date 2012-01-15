@@ -97,6 +97,9 @@ class BaseRequestHandler(tornado.web.RequestHandler):
             app = App.query.get(auth_header['auth_app_key'])
             user = User.query.get_by_userkey(auth_header['auth_user_key'])
 
+            if not (user and app):
+                raise HTTPError(400, "Bad Reques, user not exists.")
+
             token = {
                     'key': user.userkey,
                     'secret': user.secret

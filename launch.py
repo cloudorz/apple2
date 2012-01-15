@@ -15,12 +15,13 @@ from tornado.web import url
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from apps.loud import LoudHandler, SearchLoudHandler, UpdatedLoudHandler, OfferHelpUsersHandler
+from apps.loud import LoudHandler, SearchLoudHandler, OfferHelpUsersHandler
 from apps.user import UserHandler, UploadHandler
 from apps.auth import AuthHandler, DoubanHandler, WeiboHandler
 from apps.app import AppClientHandler
 from apps.prize import PrizeHandler
 from apps.reply import ReplyHandler
+from apps.rdbm import rdb_init_app
 from utils.coredb import sql_db
 
 # server
@@ -53,7 +54,6 @@ define("app_secret", default="9e6306f58b705e44d585d61e500d884d", help="app secre
 class Application(tornado.web.Application):
     def __init__(self):
         handlers = [
-                url(r'^/update$', UpdatedLoudHandler),
                 url(r'^/s$', SearchLoudHandler),
                 url(r'^/l/(?P<lid>[1-9]\d*|)$', LoudHandler, name='louds'),
                 url(r'^/u/(?P<uid>[1-9]\d*|)$', UserHandler, name='users'),
@@ -93,6 +93,7 @@ def main():
 
     # init the modual
     sql_db.init_app(app)
+    rdb_init_app(app)
 
     # server 
     http_server = tornado.httpserver.HTTPServer(app, xheaders=True)
