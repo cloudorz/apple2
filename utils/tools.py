@@ -54,7 +54,7 @@ def pretty_time_str(timeobject):
     '''  'Fri, 09 Dec 2011 13:33:20 GMT'
     '''
     t = timestamp(timeobject)
-    return email.utils.formatedate(t, localtime=False, usegmt=True)
+    return email.utils.formatdate(t, localtime=False, usegmt=True)
 
 if __name__ == "__main__":
     # test 

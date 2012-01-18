@@ -13,7 +13,7 @@ from tornado.options import options
 from apps import BaseRequestHandler
 from apps.models import User, Loud, Reply
 from utils.decorator import authenticated
-from utils.tools import QDict
+from utils.tools import QDict, pretty_time_str
 
 
 class LoudHandler(BaseRequestHandler):
@@ -133,8 +133,6 @@ class SearchLoudHandler(BaseRequestHandler):
                     )
             query_louds = handle_q[field](q.v)
 
-            gmt_now = datetime.datetime.utcnow()
-            self.set_header('Last-Modified', gmt_now.strftime('%a, %d %b %Y %H:%M:%S GMT'))
 
             # composite the results collection
             total = query_louds.count()
@@ -159,18 +157,12 @@ class SearchLoudHandler(BaseRequestHandler):
                 query_dict['st'] = max(q.start - q.num, 0)
                 loud_collection['prev'] = self.full_uri(query_dict)
 
-            # make etag prepare
-            #self.cur_louds = loud_collection['louds']
+            gmt_now = datetime.datetime.utcnow()
+            self.set_header('Last-Modified', pretty_time_str(gmt_now))
         else:
             raise HTTPError(400, "Bad Request, search condtion is not allowed.")
 
         self.render_json(loud_collection)
-    
-    #def compute_etag(self):
-    #    hasher = hashlib.sha1()
-    #    if 'cur_louds' in self.__dict__:
-    #        any(hasher.update(e) for e in sorted(loud['id'] for loud in self.cur_louds))
-    #    return '"%s"' % hasher.hexdigest()
 
 
 class OfferHelpUsersHandler(BaseRequestHandler):

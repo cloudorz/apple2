@@ -21,6 +21,7 @@ from apps.auth import AuthHandler, DoubanHandler, WeiboHandler
 from apps.app import AppClientHandler
 from apps.prize import PrizeHandler
 from apps.reply import ReplyHandler
+from apps.notify import MessageHandler, LoudUpdatedHandler, MessageUpdatedHandler, PrizeUpdatedhandler
 from apps.rdbm import rdb_init_app
 from utils.coredb import sql_db
 
@@ -44,11 +45,6 @@ define('db_uri', default="mysql://root:123@localhost/apple2?charset=utf8", type=
 # avatar dir  path
 define('path', default="/Users/cloud/mywork/webdev/apple2/static/", type=str, help="recommend default one")
 
-# app key
-define("app_name", default="lebang", help="app name")
-define("app_key", default="apple2011122801", help="app key")
-define("app_secret", default="9e6306f58b705e44d585d61e500d884d", help="app secret")
-
 
 # main logic
 class Application(tornado.web.Application):
@@ -63,6 +59,10 @@ class Application(tornado.web.Application):
                 url(r'^/reply/(?P<rid>[1-9]\d*|)$', ReplyHandler, name='replies'),
                 url(r'^/offer-help-users/urn:louds:(?P<lid>[1-9]\d*)', OfferHelpUsersHandler),
                 url(r'^/upload$', UploadHandler),
+                url(r'^/loudupdate$', LoudUpdatedHandler),
+                url(r'^/msgupdate$', MessageUpdatedHandler),
+                url(r'^/prizeupdate$', PrizeUpdatedhandler),
+                url(r'^/msg/$', MessageHandler),
                 # third party login or authorize
                 url(r'/douban/auth', DoubanHandler, name='douban'),
                 url(r'/weibo/auth', WeiboHandler, name='weibo'),

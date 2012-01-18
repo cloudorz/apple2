@@ -4,7 +4,7 @@ import datetime, hashlib, decimal
 from tornado.options import options
 
 from utils.escape import json_encode, json_decode
-from utils.tools import time2str, str2time, QDict
+from utils.tools import timestamp
 
 
 now = datetime.datetime.utcnow
@@ -17,11 +17,8 @@ def rdb_init_app(app=None):
 
 class BasicRdbModel(object):
 
-    def maintainlist(self):
-        pass
-
-    def generate_score(self, cur=now(), base=datetime.datetime(year=2012, month=1, day=1)):
-        return (cur - base).total_seconds()
+    def generate_score(self, cur=now()):
+        return timestamp(cur)
 
 
 class Message(BasicRdbModel):
@@ -39,7 +36,8 @@ class Message(BasicRdbModel):
         else:
             info['label'] = 'reply'
         info['user'] = self.owner_key
-        info['created'] = now()
+        info['loud_link'] = self.reply.loud.get_link()
+        info['created'], suffix = now().isoformat().rsplit('.', 1)
 
         self.rdb.hmset(self.key, info)
         self.rdb.expire(self.key, 7*24*3600)
@@ -61,13 +59,13 @@ class ReadMessage(BasicRdbModel):
 
     def __init__(self, uid, last=None):
         self.key = 'user:msg:%d' % uid
-        self.nowtime = now()
+        self._7days = now() - datetime.timedelta(days=7)
         if last is None:
-            last = self.nowtime - datetime.timedelta(days=7)
+            last = self._7days
         self.last = last
 
     def getMessages(self):
-        self.maintainlist()
+        self.rdb.zremrangebyscore(self.key, 0, self.generate_score(self._7days))
         mkeys = self.rdb.zrevrangebyscore(
                 self.key,
                 self.generate_score(),
@@ -80,7 +78,3 @@ class ReadMessage(BasicRdbModel):
             msgs.append(msg)
 
         return msgs
-
-    def maintainlist(self):
-        self.rdb.zremrangebyscore(self.key, 0, self.generate_score(self.nowtime))
-

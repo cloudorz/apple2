@@ -1,12 +1,14 @@
 # coding: utf-8
 
+import datetime
+
 from tornado.web import HTTPError
 from tornado.options import options
 
 from apps import BaseRequestHandler
 from apps.models import User, Loud, Prize
 from utils.decorator import authenticated, validclient
-from utils.tools import QDict, make_md5
+from utils.tools import QDict, make_md5, pretty_time_str
 from utils.escape import json_encode, json_decode
 
 class PrizeHandler(BaseRequestHandler):
@@ -51,6 +53,7 @@ class PrizeHandler(BaseRequestHandler):
                 query_dict['st'] = max(q.start - q.num, 0)
                 reply_collection['prev'] = self.full_uri(query_dict)
            
+            self.set_header('Last-Modified', pretty_time_str(datetime.datetime.utcnow()))
             self.render_json(prize_collection)
 
 
