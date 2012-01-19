@@ -159,10 +159,21 @@ class SearchLoudHandler(BaseRequestHandler):
 
             gmt_now = datetime.datetime.utcnow()
             self.set_header('Last-Modified', pretty_time_str(gmt_now))
+	    # make etag prepare
+	    self.cur_louds = loud_collection['louds']
+
         else:
             raise HTTPError(400, "Bad Request, search condtion is not allowed.")
 
         self.render_json(loud_collection)
+
+    def compute_etag(self):
+        hasher = hashlib.sha1()
+	if 'cur_louds' in self.__dict__:
+	    any(hasher.update(e) for e in sorted("%s-%s" % (loud['id'], loud['updated']) for loud in self.cur_louds))
+
+        return '"%s"' % hasher.hexdigest()
+
 
 
 class OfferHelpUsersHandler(BaseRequestHandler):

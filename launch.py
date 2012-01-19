@@ -29,10 +29,10 @@ from utils.coredb import sql_db
 define('port', default=8000, help="run on the given port", type=int)
 
 #URI
-#define('site_uri', default="https://n2u.in", type=str, help="site uri") 
-#define('static_uri', default="http://s.n2u.in", type=str, help="static uri")
-define('site_uri', default="http://192.168.0.124", type=str, help="site uri") 
-define('static_uri', default="http://192.168.0.124/static", type=str, help="static uri")
+define('site_uri', default="http://i.n2u.in", type=str, help="site uri") 
+define('static_uri', default="http://s.n2u.in", type=str, help="static uri")
+#define('site_uri', default="http://192.168.0.124", type=str, help="site uri") 
+#define('static_uri', default="http://192.168.0.124/static", type=str, help="static uri")
 define('geo_uri', default="http://l.n2u.in", type=str, help="locaiton and address parser uri")
 
 #args
@@ -43,7 +43,7 @@ define('cr', default=3000, type=float, help="the cycle radius.")
 define('db_uri', default="mysql://root:123@localhost/apple2?charset=utf8", type=str, help="connect to mysql")
 
 # avatar dir  path
-define('path', default="/Users/cloud/mywork/webdev/apple2/static/", type=str, help="recommend default one")
+define('path', default="/data/web/static/", type=str, help="recommend default one")
 
 
 # main logic
@@ -74,8 +74,8 @@ class Application(tornado.web.Application):
                 # OAuth's key and secret
                 douban_consumer_key="0855a87df29f2eac1900f979d7dd8c04",
                 douban_consumer_secret="7524926f6171b225",
-                weibo_app_key="1039549888",
-                weibo_app_secret="0fc39b72d565afb13a0bd04e75a7c873",
+                weibo_app_key="563114544",
+                weibo_app_secret="ac88e78e4c5037839cbbb9c92369bdef",
                 debug=True,
                 )
         super(Application, self).__init__(handlers, **settings)

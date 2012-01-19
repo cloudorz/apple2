@@ -5,3 +5,4 @@ env
 .svn
 static/i
 *.patch
+*.swp
