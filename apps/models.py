@@ -67,7 +67,7 @@ class LoudQuery(BaseQuery):
 
         return self.filter(Loud.expired > now()).\
                 filter(sql.or_(Loud.loudcate == 'sys',
-                    Loud.loucate == 'virtual',
+                    Loud.loudcate == 'virtual',
                     abs(earth_r*acos(sin(user_lat)*sin(Loud.lat)*cos(user_lon-Loud.lon)+cos(user_lat)*cos(Loud.lat))*pi()/180)<distance))
 
     def get_by_cycle_key(self, user_lat, user_lon, key):
