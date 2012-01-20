@@ -94,7 +94,7 @@ class BaseRequestHandler(tornado.web.RequestHandler):
                         ', '.join(required_params - given_params)
                         )
 
-            app = App.query.get(auth_header['auth_app_key'])
+            app = App.query.get_from_redis_or_db(auth_header['auth_app_key'])
             user = User.query.get_by_userkey(auth_header['auth_user_key'])
 
             if not (user and app):

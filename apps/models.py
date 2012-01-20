@@ -13,6 +13,7 @@ from tornado.httputil import url_concat
 
 from utils.coredb import BaseQuery, Base
 from utils.escape import json_encode, json_decode
+from utils.tools import QDict, make_md5
 
 # using utcnow for all now time
 now = datetime.datetime.utcnow
@@ -71,9 +72,26 @@ class LoudQuery(BaseQuery):
         return self.get_by_cycle2(user_lat, user_lon).filter(Loud.content.like('%'+key+'%'))
 
 
-# Models
+class AppQuery(BaseQuery):
+
+    def get_from_redis_or_db(self, appkey):
+
+        key = "app:%s" % appkey
+        app_dict = self.rdb.hgetall(key)
+        if app_dict:
+            app = QDict(app_dict)
+        else:
+            app = self.get(appkey)
+            self.rdb.hmset(key, app.app2auth())
+
+        return app
+
+    
 class App(Base):
+
     __tablename__ = 'apps'
+
+    query_class = AppQuery
 
     _fields = (
             'name',
@@ -107,6 +125,12 @@ class App(Base):
         info = self.to_dict(include)
         info['id'] = self.get_urn('appkey')
         info['link'] = self.get_link('appkey')
+
+        return info
+
+    def app2auth(self):
+        include = ['name', 'appkey', 'secret', 'created']
+        info = self.to_dict(include)
 
         return info
 

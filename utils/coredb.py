@@ -28,6 +28,7 @@ class SQLAlchemy(object):
         if app:
             self.db_session = app.db_session
             Base.db = app.db_session
+            Query.rdb = app.redis
             Base.reverse_uri = app.reverse_url
 
 sql_db = SQLAlchemy()
