@@ -66,7 +66,9 @@ class LoudQuery(BaseQuery):
         acos, sin, cos, pi, abs = sql.func.acos, sql.func.sin, sql.func.cos, sql.func.pi, sql.func.abs
 
         return self.filter(Loud.expired > now()).\
-                filter(sql.or_(Loud.loudcate == 'sys', abs(earth_r*acos(sin(user_lat)*sin(Loud.lat)*cos(user_lon-Loud.lon)+cos(user_lat)*cos(Loud.lat))*pi()/180)<distance))
+                filter(sql.or_(Loud.loudcate == 'sys',
+                    Loud.loucate == 'virtual',
+                    abs(earth_r*acos(sin(user_lat)*sin(Loud.lat)*cos(user_lon-Loud.lon)+cos(user_lat)*cos(Loud.lat))*pi()/180)<distance))
 
     def get_by_cycle_key(self, user_lat, user_lon, key):
         return self.get_by_cycle2(user_lat, user_lon).filter(Loud.content.like('%'+key+'%'))
