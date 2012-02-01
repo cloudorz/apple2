@@ -8,7 +8,7 @@ from tornado.options import options
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
-from apps import BaseRequestHandler, DoubanMixin, WeiboMixin
+from apps import BaseRequestHandler, DoubanMixin, WeiboMixin, RenrenMixin
 from apps.models import User, Loud, Auth
 from utils.decorator import authenticated, validclient, admin
 from utils.escape import json_encode, json_decode
@@ -197,6 +197,67 @@ class WeiboHandler(BaseRequestHandler, WeiboMixin):
             raise HTTPError(500, "Post weibo error.")
 
         self.set_status(201)
+        self.finish()
+
+
+class RenrenHandler(BaseRequestHandler, RenrenMixin):
+
+    @tornado.web.asynchronous
+    def get(self):
+
+        if self.current_user:
+            self.set_secure_cookie('userkey', self.current_user.userkey)
+
+        code = self.get_argument("code", None)
+        if code:
+            self.get_authenticated_user(code, self._on_auth)
+            return
+
+        self.renren_authorize_redirect()
+
+    def _on_auth(self, outer_user):
+        if not outer_user:
+            raise HTTPError(500, "Renren auth failed.")
+
+        auth_id = "%s_%s" % (Auth.RENREN, outer_user['uid'])
+        user = User.query.get_by_userkey(self.get_secure_cookie('userkey', None) or auth_id)
+        self.clear_cookie('userkey')
+        auth = Auth.query.get(auth_id)
+
+        # create or update the user
+        if user is None and auth is None:
+            # user data
+            user_data = {}
+            user_data['userkey'] = auth_id
+            user_data['name'] = outer_user['name']
+            user_data['avatar'] = outer_user['avatar']
+            user_data['brief'] = outer_user['brief']
+
+            user = User()
+            user.from_dict(user_data)
+
+            user.generate_secret()
+            if not user.save():
+                raise HTTPError(500, 'Save auth user info error.')
+
+        # auth data
+        auth_data = {}
+        auth_data['site_label'] = Auth.RENREN
+        auth_data['access_token'] = outer_user['access_token']['access_token']
+        auth_data['access_secret'] = outer_user['access_token']["refresh_token"] # for 
+        auth_data['expired'] = outer_user['access_token']['expires_in'] # maybe error
+        auth_data['site_user_id'] = auth_id
+        auth_data['user_id'] = user.id
+
+        # create or update the auth
+        if auth is None:
+            auth = Auth()
+
+        auth.from_dict(auth_data)
+        if not auth.save():
+            raise HTTPError(500, "Failed auth with renren account.")
+
+        self.render_json(auth.user.user2dict4auth() if auth.user.id>0 else {})
         self.finish()
 
 

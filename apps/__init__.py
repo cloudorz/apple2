@@ -311,7 +311,6 @@ class WeiboMixin(OAuth2Mixin):
     def weibo_authorize_redirect(self, redirect_uri=None):
         client = self._client_token()
         #redirect_uri = urlparse.urljoin(self.request.full_url(), redirect_uri)
-        # FIXME let me go
         redirect_uri = urlparse.urljoin(self._full_uri_or_ip(), redirect_uri)
 
         self.authorize_redirect(
@@ -326,7 +325,6 @@ class WeiboMixin(OAuth2Mixin):
         client = self._client_token()
 
         #redirect_uri = urlparse.urljoin(self.request.full_url(), redirect_uri)
-        # FIXME let me go
         redirect_uri = urlparse.urljoin(self._full_uri_or_ip(), redirect_uri)
 
         url = self._OAUTH_ACCESS_TOKEN_URL
@@ -396,6 +394,152 @@ class WeiboMixin(OAuth2Mixin):
     def _full_uri_or_ip(self):
         if self.request.host == 'localhost':
             url = "http://192.168.0.124/weibo/auth"
+        else:
+            req = self.request
+            url = "%s://%s%s" % (req.protocol, req.host, req.path)
+
+        return url
+
+
+class RenrenMixin(OAuth2Mixin):
+
+    _OAUTH_AUTHORIZE_URL = "https://graph.renren.com/oauth/authorize"
+    _OAUTH_ACCESS_TOKEN_URL = "https://graph.renren.com/oauth/token"
+
+    def renren_request(self, method, callback, fields, access_token=None, **args):
+
+        url = "http://api.renren.com/restserver.do"
+
+        if method in ('POST', 'PUT'):
+            body = urllib.urlencode(args)
+        else:
+            url = url_concat(url, args)
+            body = None
+
+        params = {
+                'method': method,
+                'v': "1.0",
+                'format': "JSON",
+                'fields': fields,
+                'access_token': access_token,
+                }
+        params['sig'] = self.sig(params)
+
+        url = url_concat(url, params)
+
+        callback = self.async_callback(self._on_renren_request, callback)
+
+        http_client = tornado.httpclient.AsyncHTTPClient()
+        http_client.fetch(url, callback=callback)
+
+    def sig(self, params):
+        client = self._client_token()
+        params_str = ''.join(sorted("%s=%s" for k,v in params.items()))
+        v = "%s%s" % (params_str, client['secret'])
+
+        return hashlib.md5(v).hexdigest()
+
+    def _on_renren_request(self, callback, response):
+        if response.error:
+            logging.warning("Warn: response %s fetching %s", response.error, response.request.url)
+            callback(None)
+            return
+
+        info = json_decode(response.body)
+        if 'error' in info:
+            logging.warning("Warn! code: %s, message: %s", info['error_code'], info['error'])
+            callback(None)
+            return
+
+        callback(info[0])
+
+    def renren_authorize_redirect(self, redirect_uri=None):
+        client = self._client_token()
+        #redirect_uri = urlparse.urljoin(self.request.full_url(), redirect_uri)
+        redirect_uri = urlparse.urljoin(self._full_uri_or_ip(), redirect_uri)
+
+        self.authorize_redirect(
+                redirect_uri=redirect_uri, 
+                client_id=client['key'],
+                client_secret=client['secret'],
+                extra_params={'response_type': 'code',
+                              'scope': 'status_update'},
+                )
+
+    def get_authenticated_user(self, code, callback, redirect_uri=None, http_client=None):
+
+        client = self._client_token()
+
+        #redirect_uri = urlparse.urljoin(self.request.full_url(), redirect_uri)
+        redirect_uri = urlparse.urljoin(self._full_uri_or_ip(), redirect_uri)
+
+        url = self._OAUTH_ACCESS_TOKEN_URL
+
+        extra_params = {
+                'grant_type': 'authorization_code',
+                }
+
+        args = dict(
+            redirect_uri=redirect_uri,
+            code=code,
+            client_id=client['key'],
+            client_secret=client['secret'],
+            )
+        args.update(extra_params)
+
+        body = urllib.urlencode(args)
+
+        if http_client is None:
+            http_client = tornado.httpclient.AsyncHTTPClient()
+
+        callback = self.async_callback(self._on_access_token, callback)
+
+        http_client.fetch(url, method='POST', body=body, callback=callback)
+
+    def _on_access_token(self, callback, response):
+        if response.error:
+            logging.warning("Error response %s fetching %s", response.error, response.request.url)
+            callback(None)
+            return
+
+        access_token = json_decode(response.body)
+        self._oauth_get_user(access_token, self.async_callback(
+             self._on_oauth_get_user, access_token, callback))
+
+    def _on_oauth_get_user(self, access_token, callback, user):
+        if not user:
+            callback(None)
+            return
+        user["access_token"] = access_token
+        callback(user)
+
+    def _oauth_get_user(self, access_token, callback):
+        callback = self.async_callback(self._parse_user_response, callback)
+        self.renren_request(
+                "users.getInfo",
+                callback,
+                "uid,name,tinyurl",
+                access_token['access_token'],
+                )
+
+    def _parse_user_response(self, callback, user):
+        if user:
+            user['avatar'] = user['tinyurl']
+            user['brief'] = ""
+        callback(user)
+
+    def _client_token(self):
+        self.require_setting('renren_app_key', "Renren OAuth2")
+        self.require_setting('renren_app_secret', "Renren OAuth2")
+
+        return dict(
+                key=self.settings['renren_app_key'],
+                secret=self.settings['renren_app_secret'],
+                )
+    
+    def _full_uri_or_ip(self):
+        if self.request.host == 'localhost':
+            url = "http://192.168.0.124/renren/auth"
         else:
             req = self.request
             url = "%s://%s%s" % (req.protocol, req.host, req.path)

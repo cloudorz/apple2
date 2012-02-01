@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 
 from apps.loud import LoudHandler, SearchLoudHandler, OfferHelpUsersHandler
 from apps.user import UserHandler, UploadHandler
-from apps.auth import AuthHandler, DoubanHandler, WeiboHandler
+from apps.auth import AuthHandler, DoubanHandler, WeiboHandler, RenrenHandler
 from apps.app import AppClientHandler
 from apps.prize import PrizeHandler
 from apps.reply import ReplyHandler
@@ -66,6 +66,7 @@ class Application(tornado.web.Application):
                 # third party login or authorize
                 url(r'/douban/auth', DoubanHandler, name='douban'),
                 url(r'/weibo/auth', WeiboHandler, name='weibo'),
+                url(r'/renren/auth', RenrenHandler, name='renren'),
                 ]
         settings = dict(
                 static_path=os.path.join(os.path.dirname(__file__), 'static'),
