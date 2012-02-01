@@ -425,16 +425,17 @@ class RenrenMixin(OAuth2Mixin):
                 }
         params['sig'] = self.sig(params)
 
-        url = url_concat(url, params)
+        #url = url_concat(url, params)
+        body = urllib.urlencode(params)
 
         callback = self.async_callback(self._on_renren_request, callback)
 
         http_client = tornado.httpclient.AsyncHTTPClient()
-        http_client.fetch(url, callback=callback)
+        http_client.fetch(url, method='POST',  callback=callback, body=body)
 
     def sig(self, params):
         client = self._client_token()
-        params_str = ''.join(sorted("%s=%s" for k,v in params.items()))
+        params_str = ''.join(sorted("%s=%s" % (k, v) for k,v in params.items()))
         v = "%s%s" % (params_str, client['secret'])
 
         return hashlib.md5(v).hexdigest()
@@ -446,8 +447,8 @@ class RenrenMixin(OAuth2Mixin):
             return
 
         info = json_decode(response.body)
-        if 'error' in info:
-            logging.warning("Warn! code: %s, message: %s", info['error_code'], info['error'])
+        if 'error' in info or 'error_code' in info:
+            logging.warning("Warn! code: %s, message: %s", info['error_code'], info.get('error', info.get('error_msg')))
             callback(None)
             return
 
