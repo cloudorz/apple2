@@ -17,7 +17,9 @@ def rdb_init_app(app=None):
 
 class BasicRdbModel(object):
 
-    def generate_score(self, cur=now()):
+    def generate_score(self, cur=None):
+    	if cur is None:
+	    cur = now()
         return timestamp(cur)
 
 
@@ -72,6 +74,7 @@ class ReadMessage(BasicRdbModel):
                 self.generate_score(self.last)
                 )
         msgs = []
+
         for key in mkeys:
             msg = self.rdb.hgetall(key)
             msg['user'] = self.rdb.hgetall(msg['user'])
