@@ -32,7 +32,7 @@ class LoudUpdatedHandler(LastBaseRequestHandler):
         lon = self.get_argument('lon')
         new_loud_count = Loud.query.cycle_update(lat, lon, last).count()
 
-        self.set_header('Last-Modified', pretty_time_str(datetime.datetime.utcnow()))
+        #self.set_header('Last-Modified', pretty_time_str(datetime.datetime.utcnow()))
         self.render_json({'num': new_loud_count})
 
 
@@ -45,7 +45,7 @@ class MessageUpdatedHandler(LastBaseRequestHandler):
         msg = ReadMessage(self.current_user.id, self.last_modified_time)
         messages = msg.getMessages()
 
-        self.set_header('Last-Modified', pretty_time_str(datetime.datetime.utcnow()))
+        #self.set_header('Last-Modified', pretty_time_str(datetime.datetime.utcnow()))
         self.render_json({'num': len(messages)})
 
 
@@ -57,7 +57,7 @@ class PrizeUpdatedhandler(LastBaseRequestHandler):
         # prize update check
         prizes = Prize.query.filter(Prize.created>=self.last_modified_time)
 
-        self.set_header('Last-Modified', pretty_time_str(datetime.datetime.utcnow()))
+        #self.set_header('Last-Modified', pretty_time_str(datetime.datetime.utcnow()))
         self.render_json({'num': prizes.count()})
 
 
