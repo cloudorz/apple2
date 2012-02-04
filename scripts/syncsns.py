@@ -22,7 +22,7 @@ def handle_request(rsp):
 
 def send_weibo(data):
     content = {
-            'status': "%s #%s# @-乐帮-" % (data['content'], data['address']),
+            'status': u"%s #%s# @-乐帮-" % (data['content'], data['address']),
             }
     try:
         http_client.fetch("https://api.weibo.com/2/statuses/update.json",
@@ -67,7 +67,6 @@ def waiting_and_send_data():
 
 def main():
     waiting_and_send_data()
-    print 'fuck'
     # FIXME can work?
     #tornado.ioloop.IOLoop.instance().start()
 
