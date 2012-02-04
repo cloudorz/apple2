@@ -5,6 +5,7 @@ import pycurl, json, urllib
 import tornado.ioloop
 
 from tornado import httpclient
+from tornado.escape import utf8
 
 # keys & secrets 
 douban_consumer_key="0855a87df29f2eac1900f979d7dd8c04",
@@ -22,11 +23,11 @@ def handle_request(rsp):
 
 def send_weibo(data):
     content = {
-            'status': "%s #%s# @-乐帮-" % (data['content'], data['address']),
+            'status': u"%s #%s# @-乐帮-" % (data['content'], data['address']),
             }
     try:
         http_client.fetch("https://api.weibo.com/2/statuses/update.json",
-                body=urllib.urlencode(content),
+                body=urllib.urlencode(utf8(content)),
                 headers={'Authorization': "OAuth2 %s" % data['token']},
                 method='POST',
                 )
