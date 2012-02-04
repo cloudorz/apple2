@@ -539,6 +539,16 @@ class Loud(Base):
 
 
 # user's all louds number
+
+    def loud2dict4sns(self):
+        include = ['created', 'content', 'flat', 'flon']
+        info = self.to_dict(include)
+
+        return info
+
+
+
+# user's all louds number
 User.loud_num = column_property(sql.select([sql.func.count(Loud.id)]).\
         where(Loud.user_id==User.id).as_scalar(), deferred=True)
 

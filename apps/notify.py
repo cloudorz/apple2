@@ -44,7 +44,6 @@ class MessageUpdatedHandler(LastBaseRequestHandler):
         # messages update check
         msg = ReadMessage(self.current_user.id, self.last_modified_time)
         messages = msg.getMessages()
-	logging.warning(messages)
 
         #self.set_header('Last-Modified', pretty_time_str(datetime.datetime.utcnow()))
         self.render_json({'num': len(messages)})
