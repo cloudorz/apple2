@@ -1,6 +1,6 @@
  # coding:utf-8
  
-import pycurl, json
+import pycurl, json, urllib
 
 import tornado.ioloop
 
@@ -21,10 +21,14 @@ def handle_request(rsp):
         print "Error:", rsp.error
 
 def send_weibo(data):
-    body = data['content']
+    content = {
+            'status': data['content'],
+            'lat': data['flat'],
+            'long': data['flon'],
+            }
     try:
         http_client.fetch("https://api.weibo.com/2/statuses/update.json",
-                body=body,
+                body=urllib.urlencode(content),
                 headers={'Authorization': "OAuth2 %s" % data['token']},
                 method='POST',
                 )
