@@ -541,7 +541,7 @@ class Loud(Base):
 # user's all louds number
 
     def loud2dict4sns(self):
-        include = ['created', 'content', 'flat', 'flon']
+        include = ['content', 'address']
         info = self.to_dict(include)
 
         return info

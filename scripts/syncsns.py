@@ -22,9 +22,7 @@ def handle_request(rsp):
 
 def send_weibo(data):
     content = {
-            'status': data['content'],
-            'lat': data['flat'],
-            'long': data['flon'],
+            'status': "%s #%s# @-乐帮-" % (data['content'], data['address']),
             }
     try:
         http_client.fetch("https://api.weibo.com/2/statuses/update.json",
