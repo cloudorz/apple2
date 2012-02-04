@@ -11,7 +11,7 @@ from tornado.web import asynchronous, HTTPError
 from tornado.options import options
 
 from apps import BaseRequestHandler
-from apps.models import User, Loud, Reply
+from apps.models import User, Loud, Reply, Auth
 from utils.decorator import authenticated
 from utils.tools import QDict, pretty_time_str
 
@@ -73,6 +73,58 @@ class LoudHandler(BaseRequestHandler):
         if loud.save():
             self.set_status(201)
             self.set_header('Location', loud.get_link())
+
+            # send to sns
+            if loud_data['weibo'] or loud_data['renren'] or loud_data['douban']:
+                sns_data = loud.loud2dict()
+                mqurl = "http://localhost:8888/"
+
+                auth_query = Auth.query.filter(Auth.user_id==self.current_user.id)
+                if loud_data['weibo']:
+                    try:
+                        weibo_auth = auth_query.filter(Auth.site_label==Auth.WEIBO).one()
+                    except (NoResultFound, MultipleResultsFound):
+                        pass
+                    else:
+                        sns_data['token'] = weibo_auth.access_token
+                        sns_data['secret'] = weibo_auth.access_secret
+                        sns_data['label'] = Auth.WEIBO
+                        rsp = yield gen.Task(http_client.fetch,
+                                mqurl,
+                                method='POST',
+                                body='queue=snspost&value=%s' % self.json(sns_data),
+                                )
+
+                if loud_data['renren']:
+                    try:
+                        renren_auth = auth_query.filter(Auth.site_label==Auth.RENREN).one()
+                    except (NoResultFound, MultipleResultsFound):
+                        pass
+                    else:
+                        sns_data['token'] = renren_auth.access_token
+                        sns_data['secret'] = renren_auth.access_secret
+                        sns_data['label'] = Auth.RENREN
+                        rsp = yield gen.Task(http_client.fetch,
+                                mqurl,
+                                method='POST',
+                                body='queue=snspost&value=%s' % self.json(sns_data),
+                                )
+
+                if loud_data['douban']:
+                    try:
+                        douban_auth = auth_query.filter(Auth.site_label==Auth.DOUBAN).one()
+                    except (NoResultFound, MultipleResultsFound):
+                        pass
+                    else:
+                        sns_data['token'] = douban_auth.access_token
+                        sns_data['secret'] = douban_auth.access_secret
+                        sns_data['label'] = Auth.DOUBAN
+                        rsp = yield gen.Task(http_client.fetch,
+                                mqurl,
+                                method='POST',
+                                body='queue=snspost&value=%s' % self.json(sns_data),
+                                )
+
         else:
             raise HTTPError(500, "Save data error.")
 
