@@ -13,7 +13,7 @@ def on_receive(stream):
         else:
             print data
  
- conn = pycurl.Curl()
- conn.setopt(pycurl.URL, "http://127.0.0.1:8888/c/snspost")
- conn.setopt(pycurl.WRITEFUNCTION, on_receive)
- conn.perform()
+conn = pycurl.Curl()
+conn.setopt(pycurl.URL, "http://127.0.0.1:8888/c/snspost")
+conn.setopt(pycurl.WRITEFUNCTION, on_receive)
+conn.perform()
