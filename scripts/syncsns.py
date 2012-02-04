@@ -14,7 +14,7 @@ weibo_app_secret="ac88e78e4c5037839cbbb9c92369bdef",
 renren_app_key="8f9607b8f2d4446fbc798597dc1dcdd4",
 renren_app_secret="c8bfb41852ae40589f268007205fce13",
 
-http_client = httpclient.AsyncHTTPClient()
+http_client = httpclient.HTTPClient()
 
 def handle_request(rsp):
     if rsp.error:
@@ -22,12 +22,15 @@ def handle_request(rsp):
 
 def send_weibo(data):
     body = data['content']
-    http_client.fetch("https://api.weibo.com/2/statuses/update.json",
-            body=body,
-            callback=handle_request,
-            headers={'Authorization': "OAuth2 %s" % data['token']},
-            method='POST',
-            )
+    try:
+        http_client.fetch("https://api.weibo.com/2/statuses/update.json",
+                body=body,
+                headers={'Authorization': "OAuth2 %s" % data['token']},
+                method='POST',
+                )
+        rsp = http_client.fetch("http://www.google.com/")
+    except httpclient.HTTPError, e:
+        print "Error:", e
 
 def send_douban(data):
     pass
@@ -64,9 +67,7 @@ def main():
     waiting_and_send_data()
     print 'fuck'
     # FIXME can work?
-    tornado.ioloop.IOLoop.instance().start()
-
-
+    #tornado.ioloop.IOLoop.instance().start()
 
 if __name__ == '__main__':
     main()
