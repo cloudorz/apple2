@@ -68,7 +68,6 @@ def waiting_and_send_data():
 
 def main():
     waiting_and_send_data()
-    print 'fuck'
     # FIXME can work?
     #tornado.ioloop.IOLoop.instance().start()
 
