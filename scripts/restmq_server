@@ -2,8 +2,8 @@
 # RestMQ
 
 # process' user and group
-USER=www-data
-GROUP=www-data
+USER=nginx
+GROUP=nginx
 
 # twisted reactor (select, poll, epoll, kqueue)
 REACTOR=epoll
