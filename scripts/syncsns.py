@@ -2,9 +2,9 @@
  
 import pycurl, json
 
-import ioloop
+import tornado.ioloop
 
-form tornado import httpclient
+from tornado import httpclient
 
 # keys & secrets 
 douban_consumer_key="0855a87df29f2eac1900f979d7dd8c04",
@@ -61,11 +61,11 @@ def waiting_and_send_data():
     conn.perform()
 
 def main():
-    # FIXME can work?
-    ioloop.IOLoop.instance().start()
-
-    print 'fuck'
     waiting_and_send_data()
+    print 'fuck'
+    # FIXME can work?
+    tornado.ioloop.IOLoop.instance().start()
+
 
 
 if __name__ == '__main__':
