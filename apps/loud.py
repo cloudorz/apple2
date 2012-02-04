@@ -76,7 +76,7 @@ class LoudHandler(BaseRequestHandler):
 
             # send to sns
             if loud_data['weibo'] or loud_data['renren'] or loud_data['douban']:
-                sns_data = loud.loud2dict()
+                sns_data = loud.loud2dict4sns()
                 mqurl = "http://localhost:8888/"
 
                 auth_query = Auth.query.filter(Auth.user_id==self.current_user.id)
