@@ -5,6 +5,7 @@ import tornado.web
 from tornado.web import HTTPError
 from tornado.httputil import url_concat
 from tornado.options import options
+from tornado import httpclient
 
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
@@ -166,6 +167,22 @@ class WeiboHandler(BaseRequestHandler, WeiboMixin):
         auth.from_dict(auth_data)
         if not auth.save():
             raise HTTPError(500, "Failed auth with weibo account.")
+
+        # send to weibo 
+        snd_data = {
+                'token': auth.access_token,
+                'secret': auth.access_secret,
+                'content': u"我正在使用乐帮，请关注@-乐帮- http://whohelp.me",
+                }
+        http_client = httpclient.HTTPClient()
+        try:
+            http_client.fetch(
+                    options.mquri,
+                    body="queue=snspost&value=%s" % self.json(sns_data),
+                    method='POST',
+                    )
+        except httpclient.HTTPError, e:
+            pass
 
         self.render_json(auth.user.user2dict4auth() if auth.user.id>0 else {})
         self.finish()

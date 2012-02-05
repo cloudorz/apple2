@@ -17,6 +17,13 @@ from utils.tools import QDict, make_md5
 
 # using utcnow for all now time
 now = datetime.datetime.utcnow
+PAYCATE = {
+        'food': u"请你吃饭",
+        'drink': u"请你喝饮料",
+        'movie': u"请你看电影",
+        'gift': u"送你小礼物",
+        'money': u"现金奖励",
+        }
 
 # Queries
 class UserQuery(BaseQuery):
@@ -541,8 +548,12 @@ class Loud(Base):
 # user's all louds number
 
     def loud2dict4sns(self):
-        include = ['content', 'address']
-        info = self.to_dict(include)
+        pay = PAYCATE[self.paycate]
+        if self.paydesc and self.paydesc.strip()：
+            pay += ',' + self.paydesc
+        info = {
+                'content': u"%s 报酬:%s #%s# @-乐帮-" % (self.content, pay, self.address),
+                }
 
         return info
 

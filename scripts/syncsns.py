@@ -23,7 +23,7 @@ def handle_request(rsp):
 
 def send_weibo(data):
     content = {
-            'status': utf8(u"%s #%s# @-乐帮-" % (data['content'], data['address'])),
+            'status': utf8(data['content']),
             }
     try:
         http_client.fetch("https://api.weibo.com/2/statuses/update.json",
