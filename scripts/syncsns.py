@@ -57,7 +57,6 @@ def send_renren(data):
     else:
         print rsp.body
 
-
 def sig(params):
     params_str = ''.join(sorted("%s=%s" % (k, utf8(v)) for k, v in params.items()))
     v = "%s%s" % (params_str, renren_app_secret)
