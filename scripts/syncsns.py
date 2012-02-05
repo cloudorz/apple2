@@ -48,15 +48,18 @@ def send_renren(data):
     params['sig'] = sig(params)
 
     try:
-        http_client.fetch("http://api.renren.com/restserver.do",
+        rsp = http_client.fetch("http://api.renren.com/restserver.do",
                 body=urllib.urlencode(params),
                 method='POST',
                 )
     except httpclient.HTTPError, e:
         print "Error renren:", e
+    else:
+        print rsp.body
+
 
 def sig(params):
-    params_str = ''.join(sorted("%s=%s" % (k, v) for k,v in params.items()))
+    params_str = ''.join(sorted("%s=%s" % (k, utf8(v)) for k,v in params.items()))
     v = "%s%s" % (params_str, renren_app_secret)
 
     return hashlib.md5(v).hexdigest()
