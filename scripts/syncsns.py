@@ -23,11 +23,11 @@ def handle_request(rsp):
 
 def send_weibo(data):
     content = {
-            'status': u"%s #%s# @-乐帮-" % (data['content'], data['address']),
+            'status': utf8(u"%s #%s# @-乐帮-" % (data['content'], data['address'])),
             }
     try:
         http_client.fetch("https://api.weibo.com/2/statuses/update.json",
-                body=urllib.urlencode(utf8(content)),
+                body=urllib.urlencode(content),
                 headers={'Authorization': "OAuth2 %s" % data['token']},
                 method='POST',
                 )
@@ -57,7 +57,6 @@ def on_receive(stream):
             pass
         else:
             sends[data['label']](data)
-            print data
  
 def waiting_and_send_data():
     # waiting for data
