@@ -34,7 +34,7 @@ define('static_uri', default="http://s.n2u.in", type=str, help="static uri")
 #define('site_uri', default="http://192.168.0.124", type=str, help="site uri") 
 #define('static_uri', default="http://192.168.0.124/static", type=str, help="static uri")
 define('geo_uri', default="http://l.n2u.in", type=str, help="locaiton and address parser uri")
-define('mquri', defaut="http://localhost:8888/", type=str, help="restmq uri")
+define('mquri', default="http://localhost:8888/", type=str, help="restmq uri")
 
 #args
 define('er', default=6378137, type=float, help="the earth radius.")

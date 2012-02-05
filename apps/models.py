@@ -549,7 +549,7 @@ class Loud(Base):
 
     def loud2dict4sns(self):
         pay = PAYCATE[self.paycate]
-        if self.paydesc and self.paydesc.strip()：
+        if self.paydesc and self.paydesc.strip():
             pay += ',' + self.paydesc
         info = {
                 'content': u"%s 报酬:%s #%s# @-乐帮-" % (self.content, pay, self.address),
