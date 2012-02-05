@@ -59,7 +59,7 @@ def send_renren(data):
 
 
 def sig(params):
-    params_str = ''.join(sorted("%s=%s" % (k, utf8(v)) for k,v in params.items()))
+    params_str = ''.join(sorted("%s=%s" % (k, utf8(v)) for k, v in params.items()))
     v = "%s%s" % (params_str, renren_app_secret)
 
     return hashlib.md5(v).hexdigest()
