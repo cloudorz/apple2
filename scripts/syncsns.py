@@ -54,11 +54,6 @@ def send_renren(data):
                 )
     except httpclient.HTTPError, e:
         print "Error renren:", e
-<<<<<<< HEAD
-    else:
-        print rsp.body
-=======
->>>>>>> e082a17093383379247b2fbdf76adeae8a4d89ec
 
 def sig(params):
     params_str = ''.join(sorted("%s=%s" % (k, utf8(v)) for k, v in params.items()))
