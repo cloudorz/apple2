@@ -428,7 +428,7 @@ class RenrenMixin(OAuth2Mixin):
 
     def sig(self, params):
         client = self._client_token()
-        params_str = ''.join(sorted("%s=%s" % (k, v) for k,v in params.items()))
+        params_str = ''.join(sorted("%s=%s" % (k, utf8(v)) for k,v in params.items()))
         v = "%s%s" % (params_str, client['secret'])
 
         return hashlib.md5(v).hexdigest()
