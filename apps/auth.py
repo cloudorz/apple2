@@ -276,7 +276,7 @@ class RenrenHandler(BaseRequestHandler, RenrenMixin):
             raise HTTPError(500, "Failed auth with renren account.")
 
         # send to renren 
-        snd_data = {
+        sns_data = {
                 'token': auth.access_token,
                 'secret': auth.access_secret,
                 'content': u"我正在使用乐帮，了解乐帮- http://whohelp.me",
