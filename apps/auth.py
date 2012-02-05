@@ -275,6 +275,22 @@ class RenrenHandler(BaseRequestHandler, RenrenMixin):
         if not auth.save():
             raise HTTPError(500, "Failed auth with renren account.")
 
+        # send to renren 
+        snd_data = {
+                'token': auth.access_token,
+                'secret': auth.access_secret,
+                'content': u"我正在使用乐帮，了解乐帮- http://whohelp.me",
+                }
+        http_client = httpclient.HTTPClient()
+        try:
+            http_client.fetch(
+                    options.mquri,
+                    body="queue=snspost&value=%s" % self.json(sns_data),
+                    method='POST',
+                    )
+        except httpclient.HTTPError, e:
+            pass
+
         self.render_json(auth.user.user2dict4auth() if auth.user.id>0 else {})
         self.finish()
 

@@ -410,12 +410,6 @@ class RenrenMixin(OAuth2Mixin):
 
         url = "http://api.renren.com/restserver.do"
 
-        if method in ('POST', 'PUT'):
-            body = urllib.urlencode(args)
-        else:
-            url = url_concat(url, args)
-            body = None
-
         params = {
                 'method': method,
                 'v': "1.0",
@@ -425,7 +419,6 @@ class RenrenMixin(OAuth2Mixin):
                 }
         params['sig'] = self.sig(params)
 
-        #url = url_concat(url, params)
         body = urllib.urlencode(params)
 
         callback = self.async_callback(self._on_renren_request, callback)

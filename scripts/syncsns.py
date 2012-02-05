@@ -1,6 +1,6 @@
  # coding:utf-8
  
-import pycurl, json, urllib
+import pycurl, json, urllib, hashlib
 
 import tornado.ioloop
 
@@ -31,15 +31,35 @@ def send_weibo(data):
                 headers={'Authorization': "OAuth2 %s" % data['token']},
                 method='POST',
                 )
-        rsp = http_client.fetch("http://www.google.com/")
     except httpclient.HTTPError, e:
-        print "Error:", e
+        print "Error Weibo:", e
 
 def send_douban(data):
     pass
 
 def send_renren(data):
-    pass
+    params = {
+            'method': "status.set",
+            'v': "1.0",
+            'format': "JSON",
+            'access_token': data['token'],
+            'status': utf8(data['content']),
+            }
+    params['sig'] = sig(params)
+
+    try:
+        http_client.fetch("http://api.renren.com/restserver.do",
+                body=urllib.urlencode(params),
+                method='POST',
+                )
+    except httpclient.HTTPError, e:
+        print "Error renren:", e
+
+def sig(params):
+    params_str = ''.join(sorted("%s=%s" % (k, v) for k,v in params.items()))
+    v = "%s%s" % (params_str, renren_app_secret)
+
+    return hashlib.md5(v).hexdigest()
 
 def on_receive(stream):
 
