@@ -555,9 +555,9 @@ class Loud(Base):
         
         if self.site_label == self.WEIBO:
             suffix = '@-乐帮-'
-        else if self.site_label == self.DOUBAN:
+        elif self.site_label == self.DOUBAN:
             suffix = '关注乐帮小站http://site.douban.com/135015/'
-        else if self.site_label == self.RENREN:
+        elif self.site_label == self.RENREN:
             suffix = '@乐帮'
         else:
             suffix = ''
