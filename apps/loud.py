@@ -76,7 +76,6 @@ class LoudHandler(BaseRequestHandler):
 
             # send to sns
             if loud_data['weibo'] or loud_data['renren'] or loud_data['douban']:
-                sns_data = loud.loud2dict4sns()
                 mqurl = "http://localhost:8888/"
 
                 auth_query = Auth.query.filter(Auth.user_id==self.current_user.id)
@@ -86,6 +85,7 @@ class LoudHandler(BaseRequestHandler):
                     except (NoResultFound, MultipleResultsFound):
                         pass
                     else:
+                        sns_data = loud.loud2dict4sns(weibo_auth)
                         sns_data['token'] = weibo_auth.access_token
                         sns_data['secret'] = weibo_auth.access_secret
                         sns_data['label'] = Auth.WEIBO
@@ -101,6 +101,7 @@ class LoudHandler(BaseRequestHandler):
                     except (NoResultFound, MultipleResultsFound):
                         pass
                     else:
+                        sns_data = loud.loud2dict4sns(renren_auth)
                         sns_data['token'] = renren_auth.access_token
                         sns_data['secret'] = renren_auth.access_secret
                         sns_data['label'] = Auth.RENREN
@@ -116,6 +117,7 @@ class LoudHandler(BaseRequestHandler):
                     except (NoResultFound, MultipleResultsFound):
                         pass
                     else:
+                        sns_data = loud.loud2dict4sns(douban_auth)
                         sns_data['token'] = douban_auth.access_token
                         sns_data['secret'] = douban_auth.access_secret
                         sns_data['label'] = Auth.DOUBAN
@@ -225,7 +227,6 @@ class SearchLoudHandler(BaseRequestHandler):
 	    any(hasher.update(e) for e in sorted("%s-%s" % (loud['id'], loud['updated']) for loud in self.cur_louds))
 
         return '"%s"' % hasher.hexdigest()
-
 
 
 class OfferHelpUsersHandler(BaseRequestHandler):
