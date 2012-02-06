@@ -9,12 +9,12 @@ from tornado.escape import utf8
 from tornado.auth import _oauth_signature
 
 # keys & secrets 
-douban_consumer_key="0855a87df29f2eac1900f979d7dd8c04",
-douban_consumer_secret="7524926f6171b225",
-weibo_app_key="563114544",
-weibo_app_secret="ac88e78e4c5037839cbbb9c92369bdef",
-renren_app_key="8f9607b8f2d4446fbc798597dc1dcdd4",
-renren_app_secret="c8bfb41852ae40589f268007205fce13",
+douban_consumer_key="0855a87df29f2eac1900f979d7dd8c04"
+douban_consumer_secret="7524926f6171b225"
+weibo_app_key="563114544"
+weibo_app_secret="ac88e78e4c5037839cbbb9c92369bdef"
+renren_app_key="8f9607b8f2d4446fbc798597dc1dcdd4"
+renren_app_secret="c8bfb41852ae40589f268007205fce13"
 
 http_client = httpclient.HTTPClient()
 
@@ -27,7 +27,7 @@ def send_weibo(data):
             'status': utf8(data['content']),
             }
     try:
-        http_client.fetch("https://api.weibo.com/2/statuses/update.json",
+        rsp = http_client.fetch("https://api.weibo.com/2/statuses/update.json",
                 body=urllib.urlencode(content),
                 headers={'Authorization': "OAuth2 %s" % data['token']},
                 method='POST',
@@ -37,8 +37,8 @@ def send_weibo(data):
 
 def _oauth_request_parameters(url, access_token, parameters={}, method="GET"):
     consumer_token = {
-            'key': douban_consumer_key,
-            'secret': douban_consumer_secret,
+            'key': unicode(douban_consumer_key),
+            'secret': unicode(douban_consumer_secret),
             }
     base_args = dict(
         oauth_consumer_key=consumer_token["key"],
@@ -53,6 +53,7 @@ def _oauth_request_parameters(url, access_token, parameters={}, method="GET"):
     args.update(parameters)
     signature = _oauth_signature(consumer_token, method, url, args, access_token)
     base_args["oauth_signature"] = signature
+
     return base_args
 
 def to_header(realm='', parameters=None):
@@ -74,18 +75,18 @@ def send_douban(data):
             'key': data['token'],
             'secret': data['secret'],
             }
-    oauth = _oauth_request_parameters(url, access_token, 'POST')
+    oauth = _oauth_request_parameters(url, access_token, method='POST')
     headers = to_header(parameters=oauth)
     headers['Content-Type'] = 'Application/atom+xml; charset=utf-8'
 
     try:
         rsp = http_client.fetch(url,
                 body=content,
-                headers=headers
+                headers=headers,
                 method='POST',
                 )
     except httpclient.HTTPError, e:
-        print "Error renren:", e
+        print "Error douban:", e
 
 def send_renren(data):
     params = {
