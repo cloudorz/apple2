@@ -548,11 +548,22 @@ class Loud(Base):
 # user's all louds number
 
     def loud2dict4sns(self):
+
         pay = PAYCATE[self.paycate]
         if self.paydesc and self.paydesc.strip():
             pay += ',' + self.paydesc
+        
+        if self.site_label == self.WEIBO:
+            suffix = '@-乐帮-'
+        else if self.site_label == self.DOUBAN:
+            suffix = '关注乐帮小站http://site.douban.com/135015/'
+        else if self.site_label == self.RENREN:
+            suffix = '@乐帮'
+        else:
+            suffix = ''
+
         info = {
-                'content': u"%s 报酬:%s #%s# @-乐帮-" % (self.content, pay, self.address),
+                'content': u"%s 报酬:%s #%s# %s" % (self.content, pay, self.address, suffix),
                 }
 
         return info

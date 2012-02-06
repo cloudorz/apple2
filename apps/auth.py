@@ -15,10 +15,6 @@ from utils.decorator import authenticated, validclient, admin
 from utils.escape import json_encode, json_decode
 from utils.tools import QDict
 
-DOUBAN_SAY_ATOM  = '<?xml version="1.0" encoding="UTF-8"?>\
-                    <entry xmlns:ns0="http://www.w3.org/2005/Atom" xmlns:db="http://www.douban.com/xmlns/">\
-                    <content>%s</content>\
-                    </entry>'
 
 class DoubanHandler(BaseRequestHandler, DoubanMixin):
 
@@ -94,37 +90,6 @@ class DoubanHandler(BaseRequestHandler, DoubanMixin):
             pass
 
         self.render_json(auth.user.user2dict4auth() if auth.user.id>0 else {})
-        self.finish()
-
-    @authenticated
-    @tornado.web.asynchronous
-    def post(self):
-        try:
-            douban_auth = Auth.query.filter(Auth.user_id==self.current_user.id).filter(Auth.site_label==Auth.DOUBAN).one()
-        except (NoResultFound, MultipleResultsFound):
-            raise HTTPError(500, 'No douban auth or multi douban accounts.')
-        else:
-            access_token = {
-                    'key': douban_auth.access_token,
-                    'secret': douban_auth.access_secret,
-                    'douban_user_id': douban_auth.get_outer_id(),
-                    }
-
-        data = self.get_data()
-        default_content = "我正在使用乐帮，请关注乐帮小站http://site.douban.com/135015/"
-        content = DOUBAN_SAY_ATOM % data.get('content', default_content)
-
-        self.douban_request(
-                "/miniblog/saying",
-                callback=self._on_post_say,
-                access_token=access_token,
-                method='POST',
-                body=content,
-                )
-
-    def _on_post_say(self, res):
-        if not res: raise HTTPError(500, "Post saying error.")
-        self.set_status(201)
         self.finish()
 
 
@@ -203,35 +168,6 @@ class WeiboHandler(BaseRequestHandler, WeiboMixin):
             pass
 
         self.render_json(auth.user.user2dict4auth() if auth.user.id>0 else {})
-        self.finish()
-
-    @authenticated
-    @tornado.web.asynchronous
-    def post(self):
-        try:
-            weibo_auth = Auth.query.filter(Auth.user_id==self.current_user.id).filter(Auth.site_label==Auth.WEIBO).one()
-        except (NoResultFound, MultipleResultsFound):
-            raise HTTPError(500, 'No weibo auth or multi weibo accounts.')
-        else:
-            access_token = weibo_auth.access_token
-
-        data = self.get_data()
-        default_content = "我正在使用乐帮，请关注@-乐帮- http://whohelp.me"
-        content = data.get('content', default_content)
-
-        self.weibo_request(
-                "statuses/update",
-                method='POST',
-                callback=self._on_post_say,
-                access_token=access_token,
-                status=content,
-                )
-
-    def _on_post_say(self, res):
-        if not res:
-            raise HTTPError(500, "Post weibo error.")
-
-        self.set_status(201)
         self.finish()
 
 
