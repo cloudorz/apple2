@@ -1,11 +1,12 @@
  # coding:utf-8
  
-import pycurl, json, urllib, hashlib
+import pycurl, json, urllib, hashlib, time, uuid, binascii
 
 import tornado.ioloop
 
 from tornado import httpclient
 from tornado.escape import utf8
+from tornado.auth import _oauth_signature
 
 # keys & secrets 
 douban_consumer_key="0855a87df29f2eac1900f979d7dd8c04",
@@ -34,8 +35,57 @@ def send_weibo(data):
     except httpclient.HTTPError, e:
         print "Error Weibo:", e
 
+def _oauth_request_parameters(url, access_token, parameters={}, method="GET"):
+    consumer_token = {
+            'key': douban_consumer_key,
+            'secret': douban_consumer_secret,
+            }
+    base_args = dict(
+        oauth_consumer_key=consumer_token["key"],
+        oauth_token=access_token["key"],
+        oauth_signature_method="HMAC-SHA1",
+        oauth_timestamp=str(int(time.time())),
+        oauth_nonce=binascii.b2a_hex(uuid.uuid4().bytes),
+        oauth_version='1.0',
+    )
+    args = {}
+    args.update(base_args)
+    args.update(parameters)
+    signature = _oauth_signature(consumer_token, method, url, args, access_token)
+    base_args["oauth_signature"] = signature
+    return base_args
+
+def to_header(realm='', parameters=None):
+    """Serialize as a header for an HTTPAuth request."""
+    auth_header = 'OAuth realm="%s"' % realm
+    # Add the oauth parameters.
+    if parameters:
+        auth_header = "%s, %s" % (auth_header, ', '.join('%s="%s"' % (k, urllib.quote(str(v))) for
+            k,v in parameters.items() if k[:6] == 'oauth_'))
+    return {'Authorization': auth_header}
+
 def send_douban(data):
-    pass
+    url = "http://api.douban.com/miniblog/saying"
+    content  = '<?xml version="1.0" encoding="UTF-8"?>\
+                        <entry xmlns:ns0="http://www.w3.org/2005/Atom" xmlns:db="http://www.douban.com/xmlns/">\
+                        <content>%s</content>\
+                        </entry>' % utf8(data['content'])
+    access_token = {
+            'key': data['token'],
+            'secret': data['secret'],
+            }
+    oauth = _oauth_request_parameters(url, access_token, 'POST')
+    headers = to_header(parameters=oauth)
+    headers['Content-Type'] = 'Application/atom+xml; charset=utf-8'
+
+    try:
+        rsp = http_client.fetch(url,
+                body=content,
+                headers=headers
+                method='POST',
+                )
+    except httpclient.HTTPError, e:
+        print "Error renren:", e
 
 def send_renren(data):
     params = {
