@@ -554,13 +554,13 @@ class Loud(Base):
             pay += ',' + self.paydesc
         
         if auth.site_label == auth.WEIBO:
-            suffix = '@-乐帮-'
+            suffix = u'@-乐帮-'
         elif auth.site_label == auth.DOUBAN:
-            suffix = '关注乐帮小站http://site.douban.com/135015/'
+            suffix = u'关注乐帮小站http://site.douban.com/135015/'
         elif auth.site_label == auth.RENREN:
-            suffix = '@乐帮'
+            suffix = u'@乐帮'
         else:
-            suffix = ''
+            suffix = u''
 
         info = {
                 'content': u"%s 报酬:%s #%s# %s" % (self.content, pay, self.address, suffix),
