@@ -148,6 +148,7 @@ CREATE TABLE `users` (
   `lon` double NULL DEFAULT '-1',
   `role` smallint(3) NOT NULL DEFAULT '100',
   `block` tinyint(1) NOT NULL DEFAULT '0',
+  `dtoken` varchar(80) DEFAULT NULL,
   `updated` datetime NOT NULL,
   `created` datetime NOT NULL,
   PRIMARY KEY (`id`),

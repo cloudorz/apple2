@@ -84,6 +84,24 @@ class PrizeHandler(BaseRequestHandler):
             prize.loud.status = Loud.DONE
             self.db.commit()
             # back
+            # send to apns 
+            dtoken = prize.user.dtoken
+            if dtoken:
+                sns_data = {
+                        'token': ,
+                        'secret': 'apns',
+                        'label': "apns",
+                        'content': u"@%s非常感谢你提供的帮助" % self.current_user.name,
+                        }
+                http_client = httpclient.HTTPClient()
+                try:
+                    http_client.fetch(
+                            options.mquri,
+                            body="queue=snspost&value=%s" % self.json(sns_data),
+                            method='POST',
+                            )
+                except httpclient.HTTPError, e:
+                    pass
             self.set_status(201)
             self.set_header('Location', prize.get_link('loud_id'))
         else:

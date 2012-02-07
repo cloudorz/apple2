@@ -7,6 +7,8 @@ import tornado.ioloop
 from tornado import httpclient
 from tornado.escape import utf8
 from tornado.auth import _oauth_signature
+# apns lib
+from apns import APNs, Payload
 
 # keys & secrets 
 douban_consumer_key="0855a87df29f2eac1900f979d7dd8c04"
@@ -17,6 +19,7 @@ renren_app_key="8f9607b8f2d4446fbc798597dc1dcdd4"
 renren_app_secret="c8bfb41852ae40589f268007205fce13"
 
 http_client = httpclient.HTTPClient()
+apns = APNs(use_sandbox=True, cert_file='tcert.pem', key_file='tkey.pem')
 
 def handle_request(rsp):
     if rsp.error:
@@ -106,6 +109,10 @@ def send_renren(data):
     except httpclient.HTTPError, e:
         print "Error renren:", e
 
+def send_apns(data):
+    payload = Payload(alert=utf8(data['content']), sound="default")
+    apns.gateway_server.send_notification(data['token'], payload)
+
 def sig(params):
     params_str = ''.join(sorted("%s=%s" % (k, utf8(v)) for k, v in params.items()))
     v = "%s%s" % (params_str, renren_app_secret)
@@ -118,6 +125,7 @@ def on_receive(stream):
             'weibo': send_weibo,
             'renren': send_renren,
             'douban': send_douban,
+            'apns': send_apns,
             }
     
     for b in stream.splitlines():
