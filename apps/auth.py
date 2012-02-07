@@ -23,12 +23,13 @@ class DoubanHandler(BaseRequestHandler, DoubanMixin):
 
         if self.current_user:
             self.set_secure_cookie('userkey', self.current_user.userkey)
-        else:
-            self.set_secure_cookie('uid', self.get_argument('uid'))
 
         if self.get_argument("oauth_token", None):
             self.get_authenticated_user(self._on_auth)
             return
+        else:
+            if not self.current_user:
+                self.set_secure_cookie('uid', self.get_argument('uid'))
 
         self.authorize_redirect(self.reverse_url('douban'))
 
@@ -107,13 +108,14 @@ class WeiboHandler(BaseRequestHandler, WeiboMixin):
 
         if self.current_user:
             self.set_secure_cookie('userkey', self.current_user.userkey)
-        else:
-            self.set_secure_cookie('uid', self.get_argument('uid'))
 
         code = self.get_argument("code", None)
         if code:
             self.get_authenticated_user(code, self._on_auth)
             return
+        else:
+            if not self.current_user:
+                self.set_secure_cookie('uid', self.get_argument('uid'))
 
         self.weibo_authorize_redirect()
 
@@ -193,13 +195,14 @@ class RenrenHandler(BaseRequestHandler, RenrenMixin):
 
         if self.current_user:
             self.set_secure_cookie('userkey', self.current_user.userkey)
-        else:
-            self.set_secure_cookie('uid', self.get_argument('uid'))
 
         code = self.get_argument("code", None)
         if code:
             self.get_authenticated_user(code, self._on_auth)
             return
+        else:
+            if not self.current_user:
+                self.set_secure_cookie('uid', self.get_argument('uid'))
 
         self.renren_authorize_redirect()
 
