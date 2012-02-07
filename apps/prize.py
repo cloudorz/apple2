@@ -88,7 +88,7 @@ class PrizeHandler(BaseRequestHandler):
             dtoken = prize.user.dtoken
             if dtoken:
                 sns_data = {
-                        'token': ,
+                        'token': dtoken,
                         'secret': 'apns',
                         'label': "apns",
                         'content': u"@%s非常感谢你提供的帮助" % self.current_user.name,
