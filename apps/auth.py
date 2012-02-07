@@ -38,9 +38,9 @@ class DoubanHandler(BaseRequestHandler, DoubanMixin):
             raise HTTPError(500, "Douban auth failed.")
 
         auth_id = "%s_%s" % (Auth.DOUBAN, outer_user['access_token']['douban_user_id'])
-        user = User.query.get_by_userkey(self.get_secure_cookie('userkey', None) or auth_id)
-        self.clear_cookie('userkey')
         auth = Auth.query.get(auth_id)
+        user = User.query.get_by_userkey(self.get_secure_cookie('userkey', None)) or auth and auth.user
+        self.clear_cookie('userkey')
 
         # create or update the user
         if user is None and auth is None:
@@ -124,9 +124,9 @@ class WeiboHandler(BaseRequestHandler, WeiboMixin):
             raise HTTPError(500, "Weibo auth failed.")
 
         auth_id = "%s_%s" % (Auth.WEIBO, outer_user['access_token']['uid'])
-        user = User.query.get_by_userkey(self.get_secure_cookie('userkey', None) or auth_id)
-        self.clear_cookie('userkey')
         auth = Auth.query.get(auth_id)
+        user = User.query.get_by_userkey(self.get_secure_cookie('userkey', None)) or auth and auth.user
+        self.clear_cookie('userkey')
 
         # create or update the user
         if user is None and auth is None:
@@ -211,9 +211,9 @@ class RenrenHandler(BaseRequestHandler, RenrenMixin):
             raise HTTPError(500, "Renren auth failed.")
 
         auth_id = "%s_%s" % (Auth.RENREN, outer_user['uid'])
-        user = User.query.get_by_userkey(self.get_secure_cookie('userkey', None) or auth_id)
-        self.clear_cookie('userkey')
         auth = Auth.query.get(auth_id)
+        user = User.query.get_by_userkey(self.get_secure_cookie('userkey', None)) or auth and auth.user
+        self.clear_cookie('userkey')
 
         # create or update the user
         if user is None and auth is None:
