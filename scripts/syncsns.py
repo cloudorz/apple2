@@ -19,7 +19,7 @@ renren_app_key="8f9607b8f2d4446fbc798597dc1dcdd4"
 renren_app_secret="c8bfb41852ae40589f268007205fce13"
 
 http_client = httpclient.HTTPClient()
-apns = APNs(use_sandbox=True, cert_file='tcert.pem', key_file='tkey.pem')
+apns = APNs(use_sandbox=True, cert_file='tcert.pem', key_file='tkey.unencrypted.pem')
 
 def handle_request(rsp):
     if rsp.error:
