@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import hashlib
+import hashlib, logging
 
 import tornado.httpclient
 
@@ -11,7 +11,7 @@ from tornado.web import asynchronous, HTTPError
 from tornado.options import options
 
 from apps import BaseRequestHandler
-from apps.models import User, Loud, Reply
+from apps.models import User, Loud, Reply, Device
 from apps.rdbm import Message
 from utils.decorator import authenticated, validclient
 from utils.tools import generate_password, QDict, make_md5
@@ -124,10 +124,13 @@ class ReplyHandler(BaseRequestHandler):
         if reply.save():
             self.set_status(201)
             self.set_header('Location', reply.get_link())
-            relative_users = User.query.filter(User.replies.any(
-                sql.and_(Reply.loud_id==reply.loud_id,
-                Reply.user_id!=reply.user_id)
-                ))
+            relative_users = User.query.filter(
+                    sql.or_(
+                        User.id==reply.loud.user.id,
+                        User.replies.any(sql.and_(
+                            Reply.loud_id==reply.loud_id,
+                            Reply.user_id!=reply.user_id)
+                )))
             msg = Message(reply, [e.id for e in relative_users])
             msg.create()
 
@@ -142,7 +145,7 @@ class ReplyHandler(BaseRequestHandler):
                             'label': "apns",
                             'content': u"@%s想给你提供帮助" % self.current_user.name,
                             }
-                    http_client = httpclient.HTTPClient()
+                    http_client = tornado.httpclient.HTTPClient()
                     try:
                         http_client.fetch(
                                 options.mquri,
