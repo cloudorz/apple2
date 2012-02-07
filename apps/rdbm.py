@@ -19,7 +19,7 @@ class BasicRdbModel(object):
 
     def generate_score(self, cur=None):
     	if cur is None:
-	    cur = now()
+            cur = now()
         return timestamp(cur)
 
 

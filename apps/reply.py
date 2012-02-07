@@ -124,10 +124,13 @@ class ReplyHandler(BaseRequestHandler):
         if reply.save():
             self.set_status(201)
             self.set_header('Location', reply.get_link())
-            relative_users = User.query.filter(User.replies.any(
-                sql.and_(Reply.loud_id==reply.loud_id,
-                Reply.user_id!=reply.user_id)
-                ))
+            relative_users = User.query.filter(
+                    sql.or_(
+                        User.id==reply.loud.user.id,
+                        User.replies.any(sql.and_(
+                            Reply.loud_id==reply.loud_id,
+                            Reply.user_id!=reply.user_id)
+                )))
             msg = Message(reply, [e.id for e in relative_users])
             msg.create()
 
