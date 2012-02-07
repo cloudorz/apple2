@@ -9,7 +9,7 @@ from tornado.options import options
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 from apps import BaseRequestHandler
-from apps.models import App
+from apps.models import App, Device
 from utils.decorator import authenticated, validclient, admin
 from utils.escape import json_encode, json_decode
 from utils.tools import QDict
@@ -43,7 +43,6 @@ class AppClientHandler(BaseRequestHandler):
         app = App()
         app.from_dict(data)
         app.generate_secret()
-        print data
 
         if app.save():
             self.set_status(201)
@@ -64,3 +63,21 @@ class AppClientHandler(BaseRequestHandler):
         
         self.set_status(200)
         self.finish()
+
+class DeviceHandler(BaseRequestHandler):
+
+    def put(self, uid):
+        data = self.get_data()
+
+        device = Device.query.get(uid)
+        if not device:
+            device = Device()
+            device.uid = uid
+
+        device.from_dict(data)
+
+        if device.save():
+            self.set_status(201)
+            self.set_header('Location', device.get_link('uid'))
+        else:
+            raise HTTPError(500, 'Created fail. wrong arguments or save error.')

@@ -96,6 +96,35 @@ class AppQuery(BaseQuery):
         return app
 
     
+class Device(Base):
+
+    __tablename__ = 'devices'
+
+    _fields = (
+            'uid',
+            'dtoken',
+            'update',
+            'created',
+            )
+    
+    uid = Column(String(50), primary_key=True)
+    dtoken = Column(String(80))
+    updated = Column(DateTime, default=now, onupdate=now)
+    created = Column(DateTime, default=now)
+
+    def __init__(self, *args, **kwargs):
+        super(Device, self).__init__(*args, **kwargs)
+
+    def __repr__(self):
+        return "<%s:%s>" % (self.__tablename__, self.uid)
+
+    def __str__(self):
+        return "<%s:%s>" % (self.__tablename__, self.uid)
+
+    def can_save(self):
+        return self.uid and self.dtoken
+
+
 class App(Base):
 
     __tablename__ = 'apps'
@@ -210,13 +239,13 @@ class User(Base):
             'secret',
             'name',
             'phone',
+            'deviceid',
             'avatar',
             'brief',
             'lat',
             'lon',
             'role',
             'block',
-            'dtoken',
             'updated',
             'created',
             )
@@ -230,9 +259,9 @@ class User(Base):
     secret = Column(String(32))
     name = Column(String(20))
     phone = Column(String(15), nullable=True)
+    deviceid = Column(String(50))
     avatar = Column(String(100), nullable=True)
     brief = Column(String(70), nullable=True)
-    dtoken = Column(String(80), nullable=True)
     lat = Column(Float, nullable=True, default=-1)
     lon = Column(Float, nullable=True, default=-1)
     #to_help_num int 0
@@ -255,7 +284,7 @@ class User(Base):
         return "<%s:%s>" % (self.__tablename__, self.userkey)
 
     def can_save(self):
-        return self.userkey and self.secret and self.name 
+        return self.userkey and self.secret and self.name and self.deviceid
 
     def owner_by(self, u):
         return u and u.id == self.id

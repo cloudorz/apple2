@@ -53,6 +53,17 @@ CREATE TABLE `auths` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+DROP TABLE IF EXISTS `devices`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `devices` (
+  `uid` varchar(50) NOT NULL,
+  `dtoken` varchar(80) NOT NULL,
+  `updated` datetime NOT NULL,
+  `created` datetime NOT NULL,
+  PRIMARY KEY (`uid`),
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
 --
 -- Table structure for table `louds`
 --
@@ -142,6 +153,7 @@ CREATE TABLE `users` (
   `secret` varchar(32) NOT NULL,
   `name` varchar(20) NOT NULL,
   `phone` varchar(15) DEFAULT NULL,
+  `deviceid` varchar(50) NOT NULL,
   `avatar` varchar(100) DEFAULT NULL,
   `brief` varchar(70) DEFAULT NULL,
   `lat` double NULL DEFAULT '-1',

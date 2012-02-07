@@ -18,7 +18,7 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from apps.loud import LoudHandler, SearchLoudHandler, OfferHelpUsersHandler
 from apps.user import UserHandler, UploadHandler
 from apps.auth import AuthHandler, DoubanHandler, WeiboHandler, RenrenHandler
-from apps.app import AppClientHandler
+from apps.app import AppClientHandler, DeviceHandler
 from apps.prize import PrizeHandler
 from apps.reply import ReplyHandler
 from apps.notify import MessageHandler, LoudUpdatedHandler, MessageUpdatedHandler, PrizeUpdatedhandler
@@ -60,6 +60,7 @@ class Application(tornado.web.Application):
                 url(r'^/reply/(?P<rid>[1-9]\d*|)$', ReplyHandler, name='replies'),
                 url(r'^/offer-help-users/urn:louds:(?P<lid>[1-9]\d*)', OfferHelpUsersHandler),
                 url(r'^/upload$', UploadHandler),
+                url(r'^/device/(?P<uid>[0-9a-z]+)$', DeviceHandler, name='devices'),
                 url(r'^/loudupdate$', LoudUpdatedHandler),
                 url(r'^/msgupdate$', MessageUpdatedHandler),
                 url(r'^/prizeupdate$', PrizeUpdatedhandler),

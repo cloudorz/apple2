@@ -132,23 +132,25 @@ class ReplyHandler(BaseRequestHandler):
             msg.create()
 
             # send to apns for help msg
-            dtoken = reply.loud.user.dtoken
-            if reply.is_help and dtoken:
-                sns_data = {
-                        'token': dtoken,
-                        'secret': 'apns',
-                        'label': "apns",
-                        'content': u"@%s想给你提供帮助" % self.current_user.name,
-                        }
-                http_client = httpclient.HTTPClient()
-                try:
-                    http_client.fetch(
-                            options.mquri,
-                            body="queue=snspost&value=%s" % self.json(sns_data),
-                            method='POST',
-                            )
-                except httpclient.HTTPError, e:
-                    pass
+            if reply.is_help:
+                d = Device.query.get(reply.loud.user.deviceid)
+                dtoken = d and d.dtoken
+                if dtoken:
+                    sns_data = {
+                            'token': dtoken,
+                            'secret': 'apns',
+                            'label': "apns",
+                            'content': u"@%s想给你提供帮助" % self.current_user.name,
+                            }
+                    http_client = httpclient.HTTPClient()
+                    try:
+                        http_client.fetch(
+                                options.mquri,
+                                body="queue=snspost&value=%s" % self.json(sns_data),
+                                method='POST',
+                                )
+                    except httpclient.HTTPError, e:
+                        pass
         else:
             raise HTTPError(500, "Save data error.")
 

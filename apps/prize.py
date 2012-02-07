@@ -6,7 +6,7 @@ from tornado.web import HTTPError
 from tornado.options import options
 
 from apps import BaseRequestHandler
-from apps.models import User, Loud, Prize
+from apps.models import User, Loud, Prize, Device
 from utils.decorator import authenticated, validclient
 from utils.tools import QDict, make_md5, pretty_time_str
 from utils.escape import json_encode, json_decode
@@ -85,7 +85,8 @@ class PrizeHandler(BaseRequestHandler):
             self.db.commit()
             # back
             # send to apns 
-            dtoken = prize.user.dtoken
+            d = Device.query.get(prize.user.deviceid)
+            dtoken = d and d.dtoken
             if dtoken:
                 sns_data = {
                         'token': dtoken,
