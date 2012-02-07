@@ -133,7 +133,7 @@ class ReplyHandler(BaseRequestHandler):
 
             # send to apns for help msg
             dtoken = reply.loud.user.dtoken
-            if dtoken:
+            if reply.is_help and dtoken:
                 sns_data = {
                         'token': dtoken,
                         'secret': 'apns',
