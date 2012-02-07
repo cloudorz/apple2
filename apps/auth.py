@@ -23,6 +23,8 @@ class DoubanHandler(BaseRequestHandler, DoubanMixin):
 
         if self.current_user:
             self.set_secure_cookie('userkey', self.current_user.userkey)
+        else:
+            self.set_secure_cookie('uid', self.get_argument('uid'))
 
         if self.get_argument("oauth_token", None):
             self.get_authenticated_user(self._on_auth)
@@ -41,12 +43,17 @@ class DoubanHandler(BaseRequestHandler, DoubanMixin):
 
         # create or update the user
         if user is None and auth is None:
+            did = self.get_secure_cookie('uid', None)
+            self.clear_cookie('uid')
+            if not did:
+                raise HTTPError(500, "Douban auth failed.")
             # user data
             user_data = {}
             user_data['userkey'] = auth_id
             user_data['name'] = outer_user['name']
             user_data['avatar'] = outer_user['avatar']
             user_data['brief'] = outer_user['brief']
+            user_data['deviceid'] = did
 
             user = User()
             user.from_dict(user_data)
@@ -100,6 +107,8 @@ class WeiboHandler(BaseRequestHandler, WeiboMixin):
 
         if self.current_user:
             self.set_secure_cookie('userkey', self.current_user.userkey)
+        else:
+            self.set_secure_cookie('uid', self.get_argument('uid'))
 
         code = self.get_argument("code", None)
         if code:
@@ -119,12 +128,18 @@ class WeiboHandler(BaseRequestHandler, WeiboMixin):
 
         # create or update the user
         if user is None and auth is None:
+            did = self.get_secure_cookie('uid', None)
+            self.clear_cookie('uid')
+            if not did:
+                raise HTTPError(500, "Weibo auth failed.")
+
             # user data
             user_data = {}
             user_data['userkey'] = auth_id
             user_data['name'] = outer_user['screen_name']
             user_data['avatar'] = outer_user['avatar']
             user_data['brief'] = outer_user['brief']
+            user_data['deviceid'] = did
 
             user = User()
             user.from_dict(user_data)
@@ -178,6 +193,8 @@ class RenrenHandler(BaseRequestHandler, RenrenMixin):
 
         if self.current_user:
             self.set_secure_cookie('userkey', self.current_user.userkey)
+        else:
+            self.set_secure_cookie('uid', self.get_argument('uid'))
 
         code = self.get_argument("code", None)
         if code:
@@ -197,12 +214,17 @@ class RenrenHandler(BaseRequestHandler, RenrenMixin):
 
         # create or update the user
         if user is None and auth is None:
+            did = self.get_secure_cookie('uid', None)
+            self.clear_cookie('uid')
+            if not did:
+                raise HTTPError(500, "Renren auth failed.")
             # user data
             user_data = {}
             user_data['userkey'] = auth_id
             user_data['name'] = outer_user['name']
             user_data['avatar'] = outer_user['avatar']
             user_data['brief'] = outer_user['brief']
+            user_data['deviceid'] = did
 
             user = User()
             user.from_dict(user_data)

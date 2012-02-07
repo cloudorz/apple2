@@ -61,7 +61,7 @@ CREATE TABLE `devices` (
   `dtoken` varchar(80) NOT NULL,
   `updated` datetime NOT NULL,
   `created` datetime NOT NULL,
-  PRIMARY KEY (`uid`),
+  PRIMARY KEY (`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 --
