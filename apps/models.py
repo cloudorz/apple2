@@ -24,6 +24,14 @@ PAYCATE = {
         'gift': u"送你小礼物",
         'money': u"现金奖励",
         }
+LOUDCATE = {
+        'pinche': u"顺路拼车",
+        'delivery': u"征人跑腿",
+        'virtual': u"随便问问",
+        'handyman': u"来人修理",
+        'jobs': u"招贤纳士",
+        'other': u"其他",
+        }
 
 # Queries
 class UserQuery(BaseQuery):
@@ -594,7 +602,7 @@ class Loud(Base):
             suffix = u''
 
         info = {
-                'content': u"%s 报酬:%s #%s# %s" % (self.content, pay, self.address, suffix),
+                'content': u"#%s# %s 报酬:%s #%s# %s" % (LOUDCATE[self.loudcate], self.content, pay, self.address, suffix),
                 }
 
         return info
