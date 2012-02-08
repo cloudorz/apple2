@@ -23,6 +23,7 @@ PAYCATE = {
         'movie': u"请你看电影",
         'gift': u"送你小礼物",
         'money': u"现金奖励",
+        'other': u"其他",
         }
 LOUDCATE = {
         'pinche': u"顺路拼车",
