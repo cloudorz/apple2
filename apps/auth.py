@@ -258,7 +258,7 @@ class RenrenHandler(BaseRequestHandler, RenrenMixin):
                 'token': auth.access_token,
                 'secret': auth.access_secret,
                 'label': auth.RENREN,
-                'content': u"我正在使用乐帮，乐帮是一款基于LBS的帮助应用, 旨在让你在有困难时能更容易地得到帮助。关注@乐帮- http://whohelp.me",
+                'content': u"我正在使用乐帮，乐帮是一款基于LBS的帮助应用, 旨在让你在有困难时能更容易地得到帮助。关注@乐帮 - http://whohelp.me",
                 }
         http_client = httpclient.HTTPClient()
         try:
