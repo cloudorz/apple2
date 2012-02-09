@@ -1,6 +1,6 @@
  # coding:utf-8
  
-import pycurl, json, urllib, hashlib, time, uuid, binascii
+import pycurl, json, urllib, hashlib, time, uuid, binascii, logging
 
 import tornado.ioloop
 
@@ -19,12 +19,12 @@ renren_app_key="8f9607b8f2d4446fbc798597dc1dcdd4"
 renren_app_secret="c8bfb41852ae40589f268007205fce13"
 
 http_client = httpclient.HTTPClient()
-#apns = APNs(use_sandbox=True, cert_file='tcert.pem', key_file='tkey.unencrypted.pem')
-apns = APNs(use_sandbox=False, cert_file='cert.pem', key_file='key.unencrypted.pem')
+apns = APNs(use_sandbox=True, cert_file='tcert.pem', key_file='tkey.unencrypted.pem')
+#apns = APNs(use_sandbox=False, cert_file='cert.pem', key_file='key.unencrypted.pem')
 
 def handle_request(rsp):
     if rsp.error:
-        print "Error:", rsp.error
+        logging.warning( "Error: %s", rsp.error)
 
 def send_weibo(data):
     content = {
@@ -37,7 +37,7 @@ def send_weibo(data):
                 method='POST',
                 )
     except httpclient.HTTPError, e:
-        print "Error Weibo:", e
+        logging.warning( "Error Weibo: %s", e)
 
 def _oauth_request_parameters(url, access_token, parameters={}, method="GET"):
     consumer_token = {
@@ -90,14 +90,14 @@ def send_douban(data):
                 method='POST',
                 )
     except httpclient.HTTPError, e:
-        print "Error douban:", e
+        logging.warning( "Error douban: %s", e)
 
 def send_renren(data):
     params = {
             'method': "status.set",
             'v': "1.0",
             'format': "JSON",
-            'access_token': data['token'],
+            'access_token': utf8(data['token']),
             'status':utf8(data['content']),
             }
     params['sig'] = sig(params)
@@ -108,7 +108,7 @@ def send_renren(data):
                 method='POST',
                 )
     except httpclient.HTTPError, e:
-        print "Error renren:", e
+        logging.warning( "Error renren: %s", e)
 
 def send_apns(data):
     payload = Payload(alert=utf8(data['content']), sound="default")
