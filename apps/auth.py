@@ -81,21 +81,21 @@ class DoubanHandler(BaseRequestHandler, DoubanMixin):
             raise HTTPError(500, "Failed auth with douban account.")
 
         # send to douban 
-        sns_data = {
-                'token': auth.access_token,
-                'secret': auth.access_secret,
-                'label': auth.DOUBAN,
-                'content': u"我正在使用乐帮，乐帮是一款基于LBS的帮助应用, 旨在让你在有困难时能更容易地得到帮助。请关注乐帮小站http://site.douban.com/135015/"
-                }
-        http_client = httpclient.HTTPClient()
-        try:
-            http_client.fetch(
-                    options.mquri,
-                    body="queue=snspost&value=%s" % self.json(sns_data),
-                    method='POST',
-                    )
-        except httpclient.HTTPError, e:
-            pass
+        #sns_data = {
+        #        'token': auth.access_token,
+        #        'secret': auth.access_secret,
+        #        'label': auth.DOUBAN,
+        #        'content': u"我正在使用乐帮，乐帮是一款基于LBS的帮助应用, 旨在让你在有困难时能更容易地得到帮助。请关注乐帮小站http://site.douban.com/135015/"
+        #        }
+        #http_client = httpclient.HTTPClient()
+        #try:
+        #    http_client.fetch(
+        #            options.mquri,
+        #            body="queue=snspost&value=%s" % self.json(sns_data),
+        #            method='POST',
+        #            )
+        #except httpclient.HTTPError, e:
+        #    pass
 
         self.render_json(auth.user.user2dict4auth() if auth.user.id>0 else {})
         self.finish()
@@ -168,21 +168,21 @@ class WeiboHandler(BaseRequestHandler, WeiboMixin):
             raise HTTPError(500, "Failed auth with weibo account.")
 
         # send to weibo 
-        sns_data = {
-                'token': auth.access_token,
-                'secret': auth.access_secret,
-                'label': auth.WEIBO,
-                'content': u"我正在使用乐帮，乐帮是一款基于LBS的帮助应用, 旨在让你在有困难时能更容易地得到帮助。请关注@-乐帮- http://whohelp.me",
-                }
-        http_client = httpclient.HTTPClient()
-        try:
-            http_client.fetch(
-                    options.mquri,
-                    body="queue=snspost&value=%s" % self.json(sns_data),
-                    method='POST',
-                    )
-        except httpclient.HTTPError, e:
-            pass
+        #sns_data = {
+        #        'token': auth.access_token,
+        #        'secret': auth.access_secret,
+        #        'label': auth.WEIBO,
+        #        'content': u"我正在使用乐帮，乐帮是一款基于LBS的帮助应用, 旨在让你在有困难时能更容易地得到帮助。请关注@-乐帮- http://whohelp.me",
+        #        }
+        #http_client = httpclient.HTTPClient()
+        #try:
+        #    http_client.fetch(
+        #            options.mquri,
+        #            body="queue=snspost&value=%s" % self.json(sns_data),
+        #            method='POST',
+        #            )
+        #except httpclient.HTTPError, e:
+        #    pass
 
         self.render_json(auth.user.user2dict4auth() if auth.user.id>0 else {})
         self.finish()
@@ -254,21 +254,21 @@ class RenrenHandler(BaseRequestHandler, RenrenMixin):
             raise HTTPError(500, "Failed auth with renren account.")
 
         # send to renren 
-        sns_data = {
-                'token': auth.access_token,
-                'secret': auth.access_secret,
-                'label': auth.RENREN,
-                'content': u"我正在使用乐帮，乐帮是一款基于LBS的帮助应用, 旨在让你在有困难时能更容易地得到帮助。关注@乐帮 - http://whohelp.me",
-                }
-        http_client = httpclient.HTTPClient()
-        try:
-            http_client.fetch(
-                    options.mquri,
-                    body="queue=snspost&value=%s" % self.json(sns_data),
-                    method='POST',
-                    )
-        except httpclient.HTTPError, e:
-            pass
+        #sns_data = {
+        #        'token': auth.access_token,
+        #        'secret': auth.access_secret,
+        #        'label': auth.RENREN,
+        #        'content': u"我正在使用乐帮，乐帮是一款基于LBS的帮助应用, 旨在让你在有困难时能更容易地得到帮助。关注@乐帮 - http://whohelp.me",
+        #        }
+        #http_client = httpclient.HTTPClient()
+        #try:
+        #    http_client.fetch(
+        #            options.mquri,
+        #            body="queue=snspost&value=%s" % self.json(sns_data),
+        #            method='POST',
+        #            )
+        #except httpclient.HTTPError, e:
+        #    pass
 
         self.render_json(auth.user.user2dict4auth() if auth.user.id>0 else {})
         self.finish()
