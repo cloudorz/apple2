@@ -9,6 +9,7 @@ from sqlalchemy import sql
 from tornado import gen
 from tornado.web import asynchronous, HTTPError
 from tornado.options import options
+from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 
 from apps import BaseRequestHandler
 from apps.models import User, Loud, Reply, Auth
