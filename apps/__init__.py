@@ -111,7 +111,8 @@ class BaseRequestHandler(tornado.web.RequestHandler):
                     }
 
             reauth_signature = self.build_signature(client, token, auth_header)
-            if auth_header['auth_signature'] == reauth_signature:
+            auth_signature = urllib.unquote(auth_header['auth_signature'])
+            if auth_signature == reauth_signature:
                 return user
             else:
                 raise HTTPError(400,
