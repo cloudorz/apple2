@@ -12,8 +12,8 @@ class AdminAvatarHandler(BaseRequestHandler):
 
     @authenticated
     @admin
-    def get(self, uid):
-        user = User.query.get(uid)
+    def get(self, uk):
+        user = User.query.get_by_userkey(uk)
         if user:
             info = user.user2dict4right()
             self.render_json(info)
@@ -22,7 +22,7 @@ class AdminAvatarHandler(BaseRequestHandler):
 
     @authenticated
     @admin
-    def post(self, uid):
+    def post(self, uk):
         data = self.get_data()
         data['deviceid'] = "test-test-test"
         user = User()

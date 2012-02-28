@@ -67,12 +67,12 @@ class Application(tornado.web.Application):
                 url(r'^/prizeupdate$', PrizeUpdatedhandler),
                 url(r'^/msg/$', MessageHandler),
                 # third party login or authorize
-                url(r'/douban/auth', DoubanHandler, name='douban'),
-                url(r'/weibo/auth', WeiboHandler, name='weibo'),
-                url(r'/renren/auth', RenrenHandler, name='renren'),
+                url(r'^/douban/auth$', DoubanHandler, name='douban'),
+                url(r'^/weibo/auth$', WeiboHandler, name='weibo'),
+                url(r'^/renren/auth$', RenrenHandler, name='renren'),
                 # admin 
-                url(r'/admin/avatar/', AdminAvatarHandler),
-                url(r'/admin/check', CheckAdminHandler),
+                url(r'^/admin/avatar/(?P<uk>\w+|)$', AdminAvatarHandler),
+                url(r'^/admin/check$', CheckAdminHandler),
                 ]
         settings = dict(
                 static_path=os.path.join(os.path.dirname(__file__), 'static'),
