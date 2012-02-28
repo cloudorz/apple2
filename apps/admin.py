@@ -23,8 +23,8 @@ class AdminAvatarHandler(BaseRequestHandler):
     @authenticated
     @admin
     def post(self, uk):
-        data = self.get_data()
-        data['deviceid'] = "test-test-test"
+        user_data = self.get_data()
+        user_data['deviceid'] = "test-test-test"
         user = User()
         user.from_dict(user_data)
         user.generate_secret()
