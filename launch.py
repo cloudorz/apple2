@@ -21,6 +21,7 @@ from apps.auth import AuthHandler, DoubanHandler, WeiboHandler, RenrenHandler
 from apps.app import AppClientHandler, DeviceHandler
 from apps.prize import PrizeHandler
 from apps.reply import ReplyHandler
+from apps.admin import AdminAvatarHandler, CheckAdminHandler
 from apps.notify import MessageHandler, LoudUpdatedHandler, MessageUpdatedHandler, PrizeUpdatedhandler
 from apps.rdbm import rdb_init_app
 from utils.coredb import sql_db
@@ -69,6 +70,9 @@ class Application(tornado.web.Application):
                 url(r'/douban/auth', DoubanHandler, name='douban'),
                 url(r'/weibo/auth', WeiboHandler, name='weibo'),
                 url(r'/renren/auth', RenrenHandler, name='renren'),
+                # admin 
+                url(r'/admin/avatar/', AdminAvatarHandler),
+                url(r'/admin/check', CheckAdminHandler),
                 ]
         settings = dict(
                 static_path=os.path.join(os.path.dirname(__file__), 'static'),

@@ -361,6 +361,13 @@ class User(Base):
 
         return info
 
+    def user2dict4right(self):
+        info = self.self.to_dict({'userkey', 'secret', 'name'})
+        info['id'] = self.get_urn()
+        info['link'] = self.get_link()
+
+        return info
+
     def get_avatar_link(self):
         link = ''
         if self.avatar:
