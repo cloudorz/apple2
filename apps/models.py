@@ -362,7 +362,7 @@ class User(Base):
         return info
 
     def user2dict4right(self):
-        info = self.self.to_dict({'userkey', 'secret', 'name'})
+        info = self.to_dict({'userkey', 'secret', 'name'})
         info['id'] = self.get_urn()
         info['link'] = self.get_link()
 
