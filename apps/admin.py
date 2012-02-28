@@ -14,7 +14,7 @@ class AdminAvatarHandler(BaseRequestHandler):
     @admin
     def get(self, uk):
         user = User.query.get_by_userkey(uk)
-        if user:
+        if user and user.id > 0:
             info = user.user2dict4right()
             self.render_json(info)
         else:
