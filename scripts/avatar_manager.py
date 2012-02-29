@@ -8,9 +8,10 @@
     mail: cloudcry@gmail.com
 '''
 
+import json, pycurl, urlparse, urllib, hmac, hashlib, base64, datetime
+import binascii, uuid, time, cStringIO
 import functools
 import binascii, uuid, time, cStringIO
-import json, pycurl, urlparse, urllib, hmac, hashlib, base64, datetime
 
 
 BASEURI = 'http://i.n2u.in'
@@ -160,8 +161,8 @@ class Request(object):
     def get_normalized_parameters(self):
         querystr = urlparse.urlparse(self.uri).query
         args = self._query_args_a0(querystr)
-        args.update({k: v for k, v in self.auth_paras.items()
-            if k[:5] == 'auth_' and k != 'auth_signature'})
+        args.update(dict((k, v) for k, v in self.auth_paras.items()
+            if k[:5] == 'auth_' and k != 'auth_signature'))
         key_values = args.items()
         key_values.sort()
 
@@ -170,7 +171,7 @@ class Request(object):
 
     def _query_args_a0(self, s):
         query_args = urlparse.parse_qs(s, keep_blank_values=False)
-        return {k: urllib.unquote(v[0]) for k, v in query_args.items()}
+        return dict((k, urllib.unquote(v[0])) for k, v in query_args.items())
 
     def _signature(self):
         sig = (
