@@ -32,7 +32,7 @@ class AdminAvatarHandler(BaseRequestHandler):
             query_users = User.query
 
             if q.q:
-                query_users = query_users.filter(User.name.like('%'+q.q+'%'))
+                query_users = query_users.filter(User.userkey.like(q.q+'%'))
 
             # composite the results collection
             total = query_users.count()
