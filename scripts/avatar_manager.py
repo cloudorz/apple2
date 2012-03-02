@@ -517,6 +517,64 @@ def avatar_list():
         msg_error("获取列表出错")
     pass
 
+def show_user_list(data):
+
+    print "=" * 20
+    print u"总共 %s 条" % data['total']
+    n = 0
+    for user in data['users']:
+        entry = u"No.%d  {%s}" % (n, user['name'])
+        print entry
+        n += 1
+
+    print "=" * 20
+
+@puppet
+def thank():
+    if not LOUDS:
+        msg_error("求助列表为空, 请先获取列表")
+        return
+    no = AInput("求助信息序号: ").getInteger()
+    if no < 0 or no > len(LOUDS) - 1:
+        msg_error("序号超出范围")
+        return
+    loud = LOUDS[no]
+    # list the use
+    c = Request("/offer-help-users/%s" % loud['id'], PUPPET)
+    data = c.get()
+    if data:
+        show_user_list(data['users'])
+    else:
+        msg_error("获取评论人列表失败")
+        return
+    if not data['users']:
+        msg_error("评论人为空, 请先获取列表")
+        return
+    no = AInput("评论人序号: ").getInteger()
+    if no < 0 or no > len(LOUDS) - 1:
+        msg_error("序号超出范围")
+        return
+    user = data['users'][no]
+    content = AInput("感谢的内容").getString()
+    ok = AInput("有心(y/n)").getString()
+    if ok.upper() == 'Y':
+        ok = True
+    else:
+        ok = False
+    data2 = {
+            'content': content,
+            'has_star': ok,
+            'loud_urn': loud['id'],
+            'user_urn': user['id'],
+            }
+    c2 = Request("/prize/", PUPPET)
+    data2_json = json.dumps(data2)
+    res = c2.post(data)
+    if res == 'OK':
+        msg_flash('感谢成功')
+    else:
+        msg_error('失败')
+
 COMMANDS = {
         0: quit,
         1: become_avatar,
@@ -529,6 +587,7 @@ COMMANDS = {
         8: del_avatar,
         9: add_avatar,
         10: avatar_list,
+        11: thank,
         }
 
 def main():

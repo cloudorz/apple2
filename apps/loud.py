@@ -234,7 +234,8 @@ class OfferHelpUsersHandler(BaseRequestHandler):
 
     @authenticated
     def get(self, lid):
-        offers = User.query.filter(User.replies.any(sql.and_(Reply.loud_id==lid, Reply.is_help==True)))
+        #offers = User.query.filter(User.replies.any(sql.and_(Reply.loud_id==lid, Reply.is_help==True)))
+        offers = User.query.filter(User.replies.any(sql.and_(Reply.loud_id==lid)))
         offer_list = [e.user2dict4link() for e in offers]
 
         self.render_json(offer_list)
