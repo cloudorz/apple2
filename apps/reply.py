@@ -11,7 +11,7 @@ from tornado.web import asynchronous, HTTPError
 from tornado.options import options
 
 from apps import BaseRequestHandler
-from apps.models import User, Loud, Reply, Device
+from apps.models import User, Loud, Reply, Device, Prize
 from apps.rdbm import Message
 from utils.decorator import authenticated, validclient
 from utils.tools import generate_password, QDict, make_md5
