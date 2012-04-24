@@ -129,7 +129,9 @@ class ReplyHandler(BaseRequestHandler):
             self.set_header('Location', reply.get_link())
             relative_users = User.query.filter(
                     sql.or_(
-                        User.id==reply.loud.user.id,
+                        sql.and_(
+                            User.id==reply.loud.user.id,
+                            User.id!=reply.user_id),
                         User.replies.any(sql.and_(
                             Reply.loud_id==reply.loud_id,
                             Reply.user_id!=reply.user_id)
