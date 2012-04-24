@@ -404,7 +404,7 @@ class Prize(Base):
     created = Column(DateTime, default=now)
 
     user = relation('User', backref=backref('prizes', order_by=created, cascade="all, delete, delete-orphan"))
-    loud = relation('Loud', backref=backref('prize', cascade="all, delete, delete-orphan"), uselist=False)
+    loud = relation('Loud', backref=backref('prizes', cascade="all, delete, delete-orphan"))
 
     def __init__(self, *args, **kwargs):
         super(Prize, self).__init__(*args, **kwargs)

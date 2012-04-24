@@ -227,6 +227,7 @@ def prompt():
     print "8 -> 删除马甲"
     print "9 -> 添加新马甲*"
     print "10 -> 马甲列表*"
+    print "11 -> 感谢恩人"
     print "0 -> 退出"
     print "---------------------------"
 
@@ -520,9 +521,9 @@ def avatar_list():
 def show_user_list(data):
 
     print "=" * 20
-    print u"总共 %s 条" % data['total']
+    print u"总共 %s 条" % len(data)
     n = 0
-    for user in data['users']:
+    for user in data:
         entry = u"No.%d  {%s}" % (n, user['name'])
         print entry
         n += 1
@@ -531,6 +532,7 @@ def show_user_list(data):
 
 @puppet
 def thank():
+
     if not LOUDS:
         msg_error("求助列表为空, 请先获取列表")
         return
@@ -539,24 +541,27 @@ def thank():
         msg_error("序号超出范围")
         return
     loud = LOUDS[no]
+
     # list the use
-    c = Request("/offer-help-users/%s" % loud['id'], PUPPET)
+    c = Request("/offer-help-users/%s" % str(loud['id']), PUPPET)
     data = c.get()
     if data:
-        show_user_list(data['users'])
+        show_user_list(data)
     else:
         msg_error("获取评论人列表失败")
         return
-    if not data['users']:
+
+    if not data:
         msg_error("评论人为空, 请先获取列表")
         return
     no = AInput("评论人序号: ").getInteger()
-    if no < 0 or no > len(LOUDS) - 1:
+    if no < 0 or no > len(data) - 1:
         msg_error("序号超出范围")
         return
-    user = data['users'][no]
-    content = AInput("感谢的内容").getString()
-    ok = AInput("有心(y/n)").getString()
+    user = data[no]
+
+    content = AInput("感谢的内容: ").getString()
+    ok = AInput("有心(y/n): ").getString()
     if ok.upper() == 'Y':
         ok = True
     else:
@@ -569,7 +574,7 @@ def thank():
             }
     c2 = Request("/prize/", PUPPET)
     data2_json = json.dumps(data2)
-    res = c2.post(data)
+    res = c2.post(data2_json)
     if res == 'OK':
         msg_flash('感谢成功')
     else:

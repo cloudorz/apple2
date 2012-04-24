@@ -83,8 +83,8 @@ class PrizeHandler(BaseRequestHandler):
 
         if prize.save():
             # change the loud status be done
-            prize.loud.status = Loud.DONE
-            self.db.commit()
+            #prize.loud.status = Loud.DONE
+            #self.db.commit()
             # back
             # send to apns 
             d = Device.query.get(prize.user.deviceid)

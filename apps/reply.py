@@ -36,6 +36,8 @@ class ReplyHandler(BaseRequestHandler):
                     num=int(self.get_argument('qn')),
                     )
             query_replies = Reply.query.filter(Reply.loud_id==q.lid)
+            prizes = Prize.query.filter(Prize.loud_id==q.lid)
+            prize_uids = list(set(e.get_urn() for e in prizes if e))
 
             total = query_replies.count()
             query_dict = {
@@ -48,6 +50,7 @@ class ReplyHandler(BaseRequestHandler):
             reply_collection = {
                     'replies': [e.reply2dict() for e in query_replies.order_by(q.sort).limit(q.num).offset(q.start)],
                     'total': total,
+                    'prizes': prize_uids,
                     'link': self.full_uri(query_dict),
                     }
 
@@ -135,25 +138,24 @@ class ReplyHandler(BaseRequestHandler):
             msg.create()
 
             # send to apns for help msg
-            if reply.is_help:
-                d = Device.query.get(reply.loud.user.deviceid)
-                dtoken = d and d.dtoken
-                if dtoken:
-                    sns_data = {
-                            'token': dtoken,
-                            'secret': 'apns',
-                            'label': "apns",
-                            'content': u"@%s想给你提供帮助" % self.current_user.name,
-                            }
-                    http_client = tornado.httpclient.HTTPClient()
-                    try:
-                        http_client.fetch(
-                                options.mquri,
-                                body="queue=snspost&value=%s" % self.json(sns_data),
-                                method='POST',
-                                )
-                    except httpclient.HTTPError, e:
-                        pass
+            d = Device.query.get(reply.loud.user.deviceid)
+            dtoken = d and d.dtoken
+            if dtoken:
+                sns_data = {
+                        'token': dtoken,
+                        'secret': 'apns',
+                        'label': "apns",
+                        'content': u"@%s 给你提供了帮助" % self.current_user.name,
+                        }
+                http_client = tornado.httpclient.HTTPClient()
+                try:
+                    http_client.fetch(
+                            options.mquri,
+                            body="queue=snspost&value=%s" % self.json(sns_data),
+                            method='POST',
+                            )
+                except httpclient.HTTPError, e:
+                    pass
         else:
             raise HTTPError(500, "Save data error.")
 
