@@ -37,7 +37,7 @@ class ReplyHandler(BaseRequestHandler):
                     )
             query_replies = Reply.query.filter(Reply.loud_id==q.lid)
             prizes = Prize.query.filter(Prize.loud_id==q.lid)
-            prize_uids = list(set(e.get_urn() for e in prizes if e))
+            prize_uids = list(set(e.user.get_urn() for e in prizes if e))
 
             total = query_replies.count()
             query_dict = {
