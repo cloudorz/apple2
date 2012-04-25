@@ -36,6 +36,9 @@ class LoudHandler(BaseRequestHandler):
     def post(self, lid):
 
         loud_data = self.get_data()
+        # if virtual help will 
+        if loud_data['loudcate'] == 'virtual':
+            loud_data['expired'] += datetime.timedelta(days=365)
         http_client = tornado.httpclient.AsyncHTTPClient()
 
         mars_location_uri = "%s/e2m/%f,%f" % (options.geo_uri, loud_data['lat'], loud_data['lon'])
