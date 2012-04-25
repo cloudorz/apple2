@@ -2,6 +2,8 @@
 
 import datetime, logging
 
+from sqlalchemy import sql
+
 from apps import BaseRequestHandler
 from apps.models import Loud, Reply, Prize
 from apps.rdbm import Message, ReadMessage
@@ -55,7 +57,10 @@ class PrizeUpdatedhandler(LastBaseRequestHandler):
     def get(self):
         
         # prize update check
-        prizes = Prize.query.filter(Prize.created>=self.last_modified_time)
+        prizes = Prize.query.\
+                filter(sql.and_(
+                    Prize.created>=self.last_modified_time,
+                    Prize.user==self.current_user))
 
         #self.set_header('Last-Modified', pretty_time_str(datetime.datetime.utcnow()))
         self.render_json({'num': prizes.count()})
