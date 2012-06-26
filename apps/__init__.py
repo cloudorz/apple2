@@ -318,7 +318,7 @@ class WeiboMixin(OAuth2Mixin):
                 redirect_uri=redirect_uri, 
                 client_id=client['key'],
                 client_secret=client['secret'],
-                extra_params={'response_type': 'code'},
+                extra_params={'response_type': 'code', 'display': 'mobile'},
                 )
 
     def get_authenticated_user(self, code, callback, redirect_uri=None, http_client=None):
