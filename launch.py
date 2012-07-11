@@ -27,7 +27,7 @@ from apps.rdbm import rdb_init_app
 from utils.coredb import sql_db
 
 # server
-define('port', default=8000, help="run on the given port", type=int)
+define('port', default=8108, help="run on the given port", type=int)
 
 #URI
 define('site_uri', default="http://i.n2u.in", type=str, help="site uri") 
