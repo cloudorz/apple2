@@ -45,7 +45,7 @@ define('cr', default=3000, type=float, help="the cycle radius.")
 define('db_uri', default="mysql://root:123@localhost/apple2?charset=utf8", type=str, help="connect to mysql")
 
 # avatar dir  path
-define('path', default="/data/web/static/", type=str, help="recommend default one")
+define('path', default="/data/web/help_static/", type=str, help="recommend default one")
 
 
 # main logic
